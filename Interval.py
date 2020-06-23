@@ -83,7 +83,7 @@ class Interval:
 		return (self.end - self.start) * ratio + self.start
 	
 	@property
-	def is_valid(self) -> bool:
+	def is_ordered(self) -> bool:
 		"""
 		:return: True, if interval start <= end, False otherwise
 		"""
@@ -106,7 +106,7 @@ class Interval:
 	def point_touches(self, point: Any) -> bool:
 		return not self.point_is_within(point) and (math.isclose(self.start, point) or math.isclose(self.end, point))
 	
-	def positive(self) -> Interval:
+	def get_ordered(self) -> Interval:
 		return Interval(
 			min(self.start, self.end),
 			max(self.start, self.end)
@@ -274,7 +274,7 @@ class Multi_Interval:
 	def is_valid(self) -> Union[bool, None]:
 		if self.intervals:
 			for item in self.intervals:
-				if not item.is_valid:
+				if not item.is_ordered:
 					return False
 			return True
 		else:
@@ -391,7 +391,7 @@ class Multi_Interval:
 		return self
 	
 	def make_all_positive(self):
-		self.intervals = [interval.positive() for interval in self.intervals]
+		self.intervals = [interval.get_ordered() for interval in self.intervals]
 		return self
 	
 	def hull(self) -> Union[Interval, None]:
