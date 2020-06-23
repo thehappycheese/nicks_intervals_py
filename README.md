@@ -63,7 +63,7 @@ They can also be constructed by passing an iterable containing Interval()s<br>
 `a = Multi_Interval([Interval(1,2), Interval(4,5)])`
 
 # Implemented functions
-Basic functionality is implemented:
+
 
 ### Interval Union
 ```python
@@ -84,7 +84,7 @@ print(a.subtract(b))
 
 # Multi_Interval([Interval(5.00, 9.00), Interval(11.00, 15.00)])
 ```
-Note that in this case the result has been a Multi_Interval() but it could also have been a plain Interval()
+
 ### Intersection
 ```python
 from Interval import Interval, Multi_Interval
