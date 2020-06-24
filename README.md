@@ -48,9 +48,11 @@ class Custom_Float:
 
 class Custom_Interval(Interval):
     def __init__(self, start: Custom_Float, end: Custom_Float):
-        super().__init__(start, end)
+        # Do not call the super().__init__()
+		# super().__init__(start, end)  # <-- don't do this
+		self.start: Custom_Float = start
+		self.end: Custom_Float = end
 ```
-By doing this you only get an error on the one line where you call `super().__init__()` rather than all over your code base.
 
 Note: `Custom_Interval` will still return the base `Interval()` class instance when using the factory functions `Custom_Interval.make_infinite_empty()` and `Custom_Interval.make_infinite_full()` unless the user somehow overrides the `@classmethod`s (python doesnt really seem to be designed to do this however).
 
