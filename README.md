@@ -51,7 +51,7 @@ class Custom_Interval(Interval):
         # Do not call the super().__init__()
 		# super().__init__(start, end)  # <-- don't do this
 		self.start: Custom_Float = start
-		self.end: Custom_Float = end
+        self.end: Custom_Float = end
 ```
 
 Note: `Custom_Interval` will still return the base `Interval()` class instance when using the factory functions `Custom_Interval.make_infinite_empty()` and `Custom_Interval.make_infinite_full()` unless the user somehow overrides the `@classmethod`s (python doesnt really seem to be designed to do this however).
