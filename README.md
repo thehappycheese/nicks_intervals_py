@@ -1,10 +1,16 @@
 # interval-py
-This is a pure python (3.7+) library for manipulating Intervals and compound Intervals (Multi-Intervals).
-Other libraries are out there but many were overcomplicated,
-did not support modern type hints, or had dependencies on numpy and other libraries.
+
+This is a (**Work in progress**) pure python (3.7+) library for manipulating Intervals and compound Intervals (Multi-Intervals).
+Many other libraries are out there but, based on my search results at the time, many were 
+ - overcomplicated (for my purposes),
+ - did not support modern type hints,
+ - had undesireable (for my purposes) dependencies on numpy and other libraries.
+ - or were harder to learn how to use than it was to write this library ;)
+
+This one  https://github.com/kvesteri/intervals looks really popular but I have not tried it. You might want to take a look at that first as it appears to have more features and is properly tested.
 
 
-Two classes are provided:
+In this library, two classes are provided:
 
 `Interval(start: float, end: float)` <br>
 and <br>
