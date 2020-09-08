@@ -300,7 +300,7 @@ class Multi_Interval:
 	
 	def add_overlapping(self, interval: Union[Interval, Multi_Interval]) -> Multi_Interval:
 		"""Add to multi interval without further processing. Overlapping intervals will be preserved.
-		this is the same as MultiInterval().intervals.append(Interval())
+		this is similar to doing: MultiInterval().intervals.append(Interval()) except it also works on Multi_Intervals
 		:return: self
 		"""
 		if isinstance(interval, Interval):
