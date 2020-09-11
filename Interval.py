@@ -13,7 +13,7 @@ from typing import Iterable, Union, List, Any
 
 
 class Interval:
-	def __init__(self, start: float, end: float):
+	def __init__(self, start: Any, end: Any):
 		"""To initialise self.start & self.end with a type other than float, make a subclass of Interval().
 		This will give the best auto-completion and type checking results in pycharm.
 		The subclass of interval only needs to provide a replacement for this __init__()
@@ -26,8 +26,8 @@ class Interval:
 		Optionally, the subclass must
 			 - override @classmethod Interval.make_infinite_full(), and Interval.make_infinite_empty() otherwise a float('inf') value will be used
 		"""
-		self.start: float = start
-		self.end: float = end
+		self.start: Any = start
+		self.end: Any = end
 		
 	@classmethod
 	def make_infinite_full(cls) -> Interval:
