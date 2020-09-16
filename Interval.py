@@ -64,9 +64,12 @@ class Interval:
 			else:
 				out += "─"
 		print(out)
+		
+	def __format__(self, format_spec):
+		return f"{self.__class__.__name__}({format(self.start, format_spec)}, {format(self.end, format_spec)})"
 	
 	def __repr__(self):
-		return f"{self.__class__.__name__}({self.start:.2f}, {self.end:.2f})"
+		return self.__format__(".2f")
 	
 	def __getitem__(self, item):
 		if item == 0:
@@ -161,6 +164,49 @@ class Interval:
 				#    |---|
 				#  |---|
 				return type(self)(self.start, other.end)
+		else:
+			raise Exception("Interval.intersect() has failed to find a valid branch. Has there been a type error?")
+	
+	def intersects(self, other: Interval) -> bool:
+		if isinstance(other, Multi_Interval):
+			result = Multi_Interval([])
+			for sub_interval in other.intervals:
+				if self.intersects(sub_interval):
+					return True
+			return False
+		elif isinstance(other, Interval):
+			
+			#  |---|
+			#        |---|
+			if self.end < other.start:  # less than but not equal; zero length intersection will pass over
+				return False
+			
+			#        |---|
+			#  |---|
+			if self.start > other.end:  # greater than but not equal; zero length intersection will pass over
+				return False
+			
+			if self.start <= other.start:  # accepts equality; in the case of zero length intersections both return statements below are equivalent
+				#  |---|
+				#    |---|
+				if self.end < other.end:
+					return True
+				
+				#  |-------|
+				#    |---|
+				return True
+			
+			if self.start <= other.end:
+				#    |---|
+				#  |-------|
+				if self.end < other.end:
+					return True
+				
+				#    |---|
+				#  |---|
+				return True
+		else:
+			raise Exception("Interval.intersects() failed to find a valid branch. Has there been a type error?")
 	
 	def union(self, other: Interval) -> Union[Interval, Multi_Interval]:
 		if self.intersect(other) is not None:
@@ -181,9 +227,6 @@ class Interval:
 		if self.end <= other.start and math.isclose(self.end, other.start):
 			return True
 		return False
-	
-	def intersects(self, other: Interval) -> bool:
-		return self.intersect(other) is not None
 	
 	def subtract(self, other: Union[Interval, Multi_Interval]) -> Union[Interval, Multi_Interval, None]:
 		if isinstance(other, Multi_Interval):
@@ -238,8 +281,11 @@ class Multi_Interval:
 		for interval in iter_intervals:
 			self.intervals.append(interval)
 	
+	def __format__(self, format_spec):
+		return f"Multi_Interval([{', '.join(['...'+str(len(self.intervals)) if index==4 else format(interval, format_spec) for index, interval in enumerate(self.intervals) if index<5])}])"
+		
 	def __repr__(self):
-		return f"Multi_Interval({self.intervals.__repr__()})"
+		return self.__format__(".2f")
 		
 	def print(self):
 		print("Multi_Interval:")
@@ -249,6 +295,9 @@ class Multi_Interval:
 	
 	def __bool__(self):
 		return bool(self.intervals)
+	
+	def copy(self) -> Multi_Interval:
+		return type(self)([interval.copy() for interval in self.intervals]);
 	
 	@property
 	def start(self):
@@ -368,6 +417,21 @@ class Multi_Interval:
 					break
 		self.intervals.append(interval_to_add)
 		return self
+	
+	def intersection(self, arg_interval: Union[Interval, Multi_Interval]) -> Multi_Interval:
+		if isinstance(arg_interval, Multi_Interval):
+			result_multi_interval: Multi_Interval = type(self)([])
+			for my_interval in self.intervals:
+				for other_interval in arg_interval.intervals:
+					result_multi_interval.add_soft(my_interval.intersect(other_interval))
+			return result_multi_interval.delete_infinitesimal()
+		elif isinstance(arg_interval, Interval):
+			result_multi_interval: Multi_Interval = type(self)([])
+			for my_interval in self.intervals:
+				result_multi_interval.add_soft(my_interval.intersect(arg_interval))
+			return result_multi_interval.delete_infinitesimal()
+		else:
+			raise Exception("Type error in MultiInterval().intersection()")
 	
 	def merge_touching_and_intersecting(self) -> Multi_Interval:
 		"""
