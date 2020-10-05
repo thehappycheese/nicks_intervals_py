@@ -208,6 +208,32 @@ class Interval:
 		else:
 			raise Exception("Interval.intersects() failed to find a valid branch. Has there been a type error?")
 	
+	def contains(self, other: Interval, allow_inside_touching: bool = False) -> bool:
+		if isinstance(other, Multi_Interval):
+			return self.contains(other.hull())
+		elif isinstance(other, Interval):
+			# self:     |---|
+			# other:  |-------|
+			if allow_inside_touching:
+				return (other.end <= self.end or math.isclose(other.end, self.end)) and (other.start >= self.start or math.isclose(other.start, self.start))
+			else:
+				return other.end < self.end and other.start > self.start
+		else:
+			try:
+				return self.end > float(other) > self.start
+			except Exception as e:
+				raise Exception("Interval.intersects() failed to find a valid branch. Has there been a type error?") from e
+				
+	def relate_DE_9IM(self, other: Interval):
+		# 			Interior Boundary Exterior
+		# Interior  T/F      T/F      T/F
+		# Boundary  T/F      T/F      T/F
+		# Exterior  T/F      T/F      T/F
+		#
+		# represented as [9]
+		raise Exception("not implemented: very hard with floating points.")
+		pass
+		
 	def union(self, other: Interval) -> Union[Interval, Multi_Interval]:
 		if self.intersect(other) is not None:
 			return self.hull(other)
