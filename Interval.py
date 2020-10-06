@@ -308,7 +308,7 @@ class Multi_Interval:
 			self.intervals.append(interval)
 	
 	def __format__(self, format_spec):
-		return f"Multi_Interval([{', '.join(['...'+str(len(self.intervals)) if index==4 else format(interval, format_spec) for index, interval in enumerate(self.intervals) if index<5])}])"
+		return f"Multi_Interval[{len(self.intervals)}]([{', '.join(['...'+str(len(self.intervals)) if index==4 else format(interval, format_spec) for index, interval in enumerate(self.intervals) if index<5])}])"
 		
 	def __repr__(self):
 		return self.__format__(".2f")
