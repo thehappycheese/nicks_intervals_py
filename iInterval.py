@@ -1,36 +1,18 @@
 """
 Nicholas Archer
-2020/06/09
+2020-10-08
 
 Roads are made of segments, and I nearly exploded with frustration writing code to work with overlapping or touching intervals.
+Also I am using this to process midi files.
 """
 
 from __future__ import annotations
 
-import itertools
 import math
-from typing import Iterable, Union, List, Any
-
+from typing import List
+from typing import Union
 
 Infinity = float('inf')
-
-class iBound (float):
-	def __init__(self, value: float, open_bound: bool = False):
-		if not isinstance(value, float):
-			raise TypeError("iBound(value=...) must be float")
-		if not isinstance(open_bound, bool):
-			raise TypeError("iBound(open_bound=...) must be bool")
-		self.__open = open_bound
-	
-	def __new__(cls, *args, **kwargs):
-		return super().__new__(cls, args[0])
-	
-	@property
-	def open(self):
-		return self.__open
-	
-	def __eq__(self, other):
-		return math.isclose(self, other)
 
 
 class iInterval:
@@ -46,7 +28,7 @@ class iInterval:
 		)
 	
 	@classmethod
-	def empty(cls, at: float = 0.0):
+	def degenerate(cls, at: float = 0.0):
 		return iInterval(
 			lower_bound=at,
 			upper_bound=at,
@@ -62,14 +44,14 @@ class iInterval:
 			assert(isinstance(lower_bound_closed, bool))
 			assert(isinstance(upper_bound_closed, bool))
 		except AssertionError as e:
-			raise TypeError(f"Type of argument(s) incorrect:  {self.__class__.__qualname__}({lower_bound}: float, {upper_bound}: float, {lower_bound_closed}: bool, {upper_bound_closed}: bool, {snap_infinitesimal}: bool)")
-	
-		self.__is_infinitesimal = False
-		self.__is_degenerate = False
-		self.__lower_bound = float(lower_bound)
-		self.__upper_bound = float(upper_bound)
-		self.__lower_bound_closed = bool(lower_bound_closed)
-		self.__upper_bound_closed = bool(upper_bound_closed)
+			raise TypeError(f"Type of argument(s) incorrect:  {self.__class__.__qualname__}({lower_bound}: float, {upper_bound}: float, {lower_bound_closed}: bool, {upper_bound_closed}: bool)")
+		
+		self.__is_infinitesimal:bool = False
+		self.__is_degenerate:bool = False
+		self.__lower_bound:float = float(lower_bound)
+		self.__upper_bound:float = float(upper_bound)
+		self.__lower_bound_closed:bool = bool(lower_bound_closed)
+		self.__upper_bound_closed:bool = bool(upper_bound_closed)
 		
 		if lower_bound == upper_bound:
 			if self.__lower_bound_closed and self.__upper_bound_closed:
@@ -108,7 +90,7 @@ class iInterval:
 	def print(self):
 		"""
 		prints intervals and multi intervals like this for debugging (only works for integer intervals):
-		  ├─────┤
+		   ├─────┤
 			├──────┤    ├────┤
 		"""
 		if self.__lower_bound < 0 or self.__upper_bound > 100:
@@ -134,35 +116,35 @@ class iInterval:
 		print(out)
 	
 	@property
-	def start(self):
+	def start(self) -> float:
 		return self.__lower_bound
 	
 	@property
-	def end(self):
+	def end(self) -> float:
 		return self.__upper_bound
 	
 	@property
-	def lower_bound(self):
+	def lower_bound(self) -> float:
 		return self.__lower_bound
 	
 	@property
-	def upper_bound(self):
+	def upper_bound(self) -> float:
 		return self.__upper_bound
 	
 	@property
-	def lower_bound_closed(self):
+	def lower_bound_closed(self) -> bool:
 		return self.__lower_bound_closed
 	
 	@property
-	def upper_bound_closed(self):
+	def upper_bound_closed(self) -> bool:
 		return self.__upper_bound_closed
 	
 	@property
-	def is_degenerate(self):
+	def is_degenerate(self) -> bool:
 		return self.__is_degenerate
 	
 	@property
-	def is_infinitesimal(self):
+	def is_infinitesimal(self) -> bool:
 		return self.__is_infinitesimal
 	
 	@ property
@@ -174,7 +156,7 @@ class iInterval:
 			if self.__lower_bound_closed:
 				return None
 			else:
-				return iInterval.empty(-Infinity)
+				return iInterval.degenerate(-Infinity)
 		else:
 			return iInterval(-Infinity, self.__lower_bound, lower_bound_closed=not self.__lower_bound_closed)
 	
@@ -183,10 +165,56 @@ class iInterval:
 			if self.__upper_bound_closed:
 				return None
 			else:
-				return iInterval.empty(Infinity)
+				return iInterval.degenerate(Infinity)
 		else:
 			return iInterval(self.__upper_bound, Infinity, upper_bound_closed=not self.__upper_bound_closed)
-		
+	
+	def interpolate(self, ratio: float):
+		return self.__lower_bound + (self.__upper_bound - self.__lower_bound) * ratio
+	
+	def contains_value(self, value: float):
+		if self.__is_degenerate:
+			return math.isclose(self.__lower_bound, value)
+		else:
+			if self.__lower_bound < value < self.__upper_bound:
+				return True
+			elif self.__lower_bound_closed and math.isclose(value, self.__lower_bound):
+				return True
+			elif self.__upper_bound_closed and math.isclose(value, self.__upper_bound):
+				return True
+		return False
+	
+	def contains_value_as_if_self_closed(self, value):
+		""" returns the same as contains_value but behaves as if self.__lower_bound_closed == True and self.__upper_bound_closed == True
+		"""
+		if self.__is_degenerate:
+			return math.isclose(self.__lower_bound, value)
+		else:
+			if self.__lower_bound < value < self.__upper_bound:
+				return True
+			elif math.isclose(value, self.__lower_bound):
+				return True
+			elif math.isclose(value, self.__upper_bound):
+				return True
+		return False
+	
+	def contains_interval(self, other: iInterval):
+		if self.__is_degenerate and other.__is_degenerate and math.isclose(self.__lower_bound, other.__lower_bound):
+			return True
+		else:
+			self_contains_other_lower_bound = self.contains_value(other.__lower_bound) or (other.__lower_bound_closed==False and self.__lower_bound)
+			self_contains_other_upper_bound = self.contains_value(other.__upper_bound)
+			
+			raise Exception("bed time")
+			
+			if not self_contains_other_lower_bound:
+				if not self.__lower_bound_closed and other.__lower_bound_closed
+			
+			if self_contains_other_lower_bound and self_contains_other_upper_bound:
+				return True
+			elif other.__lower_bound
+			
+	
 	def exterior(self) -> Union[None, iInterval, List[iInterval]]:
 		left_exterior = self.left_exterior()
 		right_exterior = self.right_exterior()
@@ -199,5 +227,89 @@ class iInterval:
 		else:
 			return [left_exterior, right_exterior]
 	
-	def intersect(self):
-		pass
+	def intersect(self, other: iInterval) -> Union[iInterval, List[iInterval], None]:
+		if not isinstance(other, iInterval):
+			raise Exception('iInterval may only be intersected with iInterval at this time.')
+		
+		self_contains_other_lower_bound = self.contains_value(other.__lower_bound)
+		self_contains_other_upper_bound = self.contains_value(other.__upper_bound)
+		other_contains_self_lower_bound = other.contains_value(self.__lower_bound)
+		other_contains_self_upper_bound = other.contains_value(self.__upper_bound)
+		
+		# To the left of other
+		#  self:  ╠════╣
+		# other:        ╠════╣
+		if self.end < other.start:
+			if self_contains_other_lower_bound:
+				# Touching outside
+				#  self:  ╠════╣
+				# other:       ╠════╣
+				return iInterval.degenerate(at=self.__upper_bound_closed)
+			else:
+				# Disjoint
+				#  self:  ╠════╣
+				# other:       ╞════╣
+				return None
+		
+		# To the right of other:
+		#  self:         ╠════╣
+		# other:  ╠════╣
+		if self.start > other.end:
+			if self_contains_other_upper_bound:
+				# Touching Outside
+				#  self:       ╠════╣
+				# other:  ╠════╣
+				return iInterval.degenerate(at=self.__lower_bound)
+			else:
+				# Disjoint
+				#  self:       ╠════╣
+				# other:  ╠════╡
+				return None
+		
+		# if self.end >= other.start and self.start <= other.end
+		#  self: ╠════╣
+		# other:    ╠════╣
+		#            or
+		#  self:    ╠════╣
+		# other: ╠════╣
+		if self.start > other.end:
+			if self_contains_other_upper_bound:
+				# Touching Outside
+				#  self:       ╠════╣
+				# other:  ╠════╣
+				return iInterval.degenerate(at=self.__lower_bound)
+			else:
+				# Disjoint
+				#  self:       ╠════╣
+				# other:  ╠════╡
+				return None
+		
+		#  |---|
+		#    |---|
+		if other_contains_self_upper_bound and not other_contains_self_lower_bound:
+			return iInterval(other.__lower_bound, self.__upper_bound, other.__upper_bound_closed, self.__upper_bound_closed)
+			
+		#    |-|
+		#    |---|
+		if other_contains_self_upper_bound and not other_contains_self_lower_bound:
+			return iInterval(other.__lower_bound, self.__upper_bound, other.__upper_bound_closed, self.__upper_bound_closed)
+		
+		if self.start <= other.start:  # accepts equality; in the case of zero length intersections both return statements below are equivalent
+			#  |---|
+			#    |---|
+			if self.end < other.end:
+				return type(self)(other.start, self.end)
+			
+			#  |-------|
+			#    |---|
+			return type(self)(other.start, other.end)
+		
+		if self.start <= other.end:
+			#    |---|
+			#  |-------|
+			if self.end < other.end:
+				return type(self)(self.start, self.end)
+			
+			#    |---|
+			#  |---|
+			return type(self)(self.start, other.end)
