@@ -7,7 +7,7 @@ print(os.path.join(os.getcwd(), "..\\"))
 sys.path.insert(len(sys.path), os.path.join(os.getcwd(), "..\\"))
 if False:
 	from interval.iInterval import iInterval
-from iInterval import iInterval
+from Interval.iInterval import iInterval
 
 
 def test_iInterval_init_argtype():
@@ -37,5 +37,5 @@ def test_iInterval_init_degenerate_must_be_closed():
 
 
 def test_iInterval_init_infinitesimal():
-	assert iInterval(1, 1.00000000000001).is_infinitesimal
+	assert iInterval(1, 1.0000000001).is_infinitesimal
 

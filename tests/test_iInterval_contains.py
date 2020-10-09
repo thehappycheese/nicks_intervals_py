@@ -6,26 +6,53 @@ print(os.path.join(os.getcwd(), "\\"))
 sys.path.insert(len(sys.path), os.path.join(os.getcwd(), "\\"))
 if False:
 	from interval.iInterval import iInterval
-from iInterval import iInterval
+from Interval.iInterval import iInterval
+from Interval.iBound import iBound
 
 
 def test_iInterval_contains_value():
 	a = iInterval(1, 2, True, True)
-	assert a.contains_closed_bound(0.9) is False
-	assert a.contains_closed_bound(1.0) is True
-	assert a.contains_closed_bound(1.5) is True
-	assert a.contains_closed_bound(2.0) is True
-	assert a.contains_closed_bound(2.1) is False
+	assert a.contains_value(0.9) is False
+	assert a.contains_value(1.0) is True
+	assert a.contains_value(1.5) is True
+	assert a.contains_value(2.0) is True
+	assert a.contains_value(2.1) is False
 	
 	a = iInterval(1.0, 2.0, False, False)
-	
-	assert a.contains_closed_bound(0.0) is False
-	assert a.contains_closed_bound(1.0) is False
-	assert a.contains_closed_bound(1.000001) is True
-	assert a.contains_closed_bound(1.999999) is True
-	assert a.contains_closed_bound(2.0) is False
-	assert a.contains_closed_bound(3.0) is False
+	assert a.contains_value(0.0) is False
+	assert a.contains_value(1.0) is False
+	assert a.contains_value(1.000001) is True
+	assert a.contains_value(1.999999) is True
+	assert a.contains_value(2.0) is False
+	assert a.contains_value(3.0) is False
 
+
+def test_iInterval_contains_lower_bound():
+	# Touching inside cases:
+	assert iInterval(iBound(1, False), iBound(2)).contains_lower_bound(iBound(1, False)) is True  # ?? amounts to 'contains nothing'... but is true since other bound is not inclusive
+	assert iInterval(iBound(1, False), iBound(2)).contains_lower_bound(iBound(1, True)) is False
+	assert iInterval(iBound(1, True), iBound(2)).contains_lower_bound(iBound(1, False)) is True
+	assert iInterval(iBound(1, True), iBound(2)).contains_lower_bound(iBound(1, True)) is True
+	
+	# Touching outside cases:
+	assert iInterval(iBound(1), iBound(2, False)).contains_lower_bound(iBound(2, False)) is False
+	assert iInterval(iBound(1), iBound(2, False)).contains_lower_bound(iBound(2, True)) is False
+	assert iInterval(iBound(1), iBound(2, True)).contains_lower_bound(iBound(2, False)) is False
+	assert iInterval(iBound(1), iBound(2, True)).contains_lower_bound(iBound(2, True)) is True
+
+
+def test_iInterval_contains_upper_bound():
+	# Touching inside cases:
+	assert iInterval(iBound(1), iBound(2, False)).contains_upper_bound(iBound(2, False)) is True  # ?? amounts to 'contains nothing'... but is true since other bound is not inclusive
+	assert iInterval(iBound(1), iBound(2, False)).contains_upper_bound(iBound(2, True)) is False
+	assert iInterval(iBound(1), iBound(2, True)).contains_upper_bound(iBound(2, False)) is True
+	assert iInterval(iBound(1), iBound(2, True)).contains_upper_bound(iBound(2, True)) is True
+	
+	# Touching outside cases:
+	assert iInterval(iBound(1, False), iBound(2)).contains_upper_bound(iBound(1, False)) is False
+	assert iInterval(iBound(1, False), iBound(2)).contains_upper_bound(iBound(1, True)) is False
+	assert iInterval(iBound(1, True), iBound(2)).contains_upper_bound(iBound(1, False)) is False
+	assert iInterval(iBound(1, True), iBound(2)).contains_upper_bound(iBound(1, True)) is True
 
 def test_iInterval_contains_interval():
 	a = 40.0
