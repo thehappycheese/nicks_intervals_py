@@ -38,7 +38,6 @@ class iInterval:
 			upper_bound_closed=False
 		)
 	
-	
 	def __init__(self, lower_bound: Union[float, iBound], upper_bound: Union[float, iBound], lower_bound_closed: bool = None, upper_bound_closed: bool = None):
 		"""
 		
@@ -74,7 +73,6 @@ class iInterval:
 		
 		self.__is_infinitesimal: bool = False
 		self.__is_degenerate: bool = False
-		
 		
 		if lower_bound == upper_bound:
 			if self.__lower_bound.closed and self.__upper_bound.closed:
@@ -170,13 +168,13 @@ class iInterval:
 		return self.__is_infinitesimal
 	
 	@ property
-	def length(self):
+	def length(self) -> float:
 		return self.__upper_bound - self.__lower_bound
 	
-	def interpolate(self, ratio: float):
+	def interpolate(self, ratio: float) -> float:
 		return self.__lower_bound + (self.__upper_bound - self.__lower_bound) * ratio
 	
-	def contains_value(self, value: float):
+	def contains_value(self, value: float) -> bool:
 		if self.__is_degenerate:
 			return math.isclose(self.__lower_bound, value)
 		else:
@@ -188,7 +186,7 @@ class iInterval:
 				return True
 		return False
 	
-	def contains_upper_bound(self, bound:iBound):
+	def contains_upper_bound(self, bound: iBound) -> bool:
 		if self.__is_degenerate and math.isclose(self.__lower_bound, bound):
 			return True
 		else:
@@ -200,7 +198,7 @@ class iInterval:
 				return True
 		return False
 	
-	def contains_lower_bound(self, bound:iBound):
+	def contains_lower_bound(self, bound: iBound) -> bool:
 		if self.__is_degenerate and math.isclose(self.__upper_bound, bound):
 			return True
 		else:
@@ -212,43 +210,36 @@ class iInterval:
 				return True
 		return False
 		
-	def contains_interval(self, other: iInterval):
+	def contains_interval(self, other: iInterval) -> bool:
 		if self.__is_degenerate and other.__is_degenerate and math.isclose(self.__lower_bound, other.__lower_bound):
 			return True
 		else:
 			return self.contains_lower_bound(other.__lower_bound) and self.contains_upper_bound(other.__upper_bound)
 	
-	def left_exterior(self):
+	@property
+	def left_exterior(self) -> List[iInterval]:
 		if self.__lower_bound == -Infinity:
 			if self.__lower_bound.closed:
-				return None
+				return []
 			else:
-				return iInterval.degenerate(-Infinity)
+				return [iInterval.degenerate(-Infinity)]
 		else:
-			return iInterval(-Infinity, iBound(self.__lower_bound, not self.__lower_bound.closed))
+			return [iInterval(-Infinity, iBound(self.__lower_bound, not self.__lower_bound.closed))]
 	
-	def right_exterior(self):
+	@property
+	def right_exterior(self) -> List[iInterval]:
 		if self.__upper_bound == Infinity:
 			if self.__upper_bound.closed:
-				return None
+				return []
 			else:
-				return iInterval.degenerate(Infinity)
+				return [iInterval.degenerate(Infinity)]
 		else:
-			return iInterval(iBound(self.__upper_bound, not self.__upper_bound.closed), Infinity)
+			return [iInterval(iBound(self.__upper_bound, not self.__upper_bound.closed), Infinity)]
 	
-	def exterior(self) -> Union[None, iInterval, List[iInterval]]:
-		left_exterior = self.left_exterior()
-		right_exterior = self.right_exterior()
-		if left_exterior is None and right_exterior is None:
-			return None
-		elif left_exterior is None:
-			return right_exterior
-		elif right_exterior is None:
-			return left_exterior
-		else:
-			return [left_exterior, right_exterior]
+	def exterior(self) -> List[iInterval]:
+		return [*self.left_exterior, *self.right_exterior]
 	
-	def intersect(self, other: iInterval) -> Union[iInterval, List[iInterval], None]:
+	def intersect(self, other: iInterval) -> List[iInterval]:
 		if not isinstance(other, iInterval):
 			raise Exception('iInterval may only be intersected with iInterval at this time.')
 		
@@ -261,24 +252,36 @@ class iInterval:
 		#  other:        ╠════╣
 		# result:        ╠════╣
 		if self_contains_other_lower_bound and self_contains_other_upper_bound:
-			return other
+			return [other]
 		
 		#   self:        ╠════╣
 		#  other:  ╠════════════╣
 		# result:        ╠════╣
 		if other_contains_self_lower_bound and other_contains_self_upper_bound:
-			return self
+			return [self]
 		
 		#   self:        ╠══════════╣
 		#  other:  ╠════════════╣
 		# result:        ╠══════╣
 		if other_contains_self_lower_bound:
-			return iInterval(self.__lower_bound, other.__upper_bound)
+			return [iInterval(self.__lower_bound, other.__upper_bound)]
 			
 		#   self:    ╠══════════╣
 		#  other:        ╠════════════╣
 		# result:        ╠══════╣
 		if other_contains_self_upper_bound:
-			return iInterval(other.__lower_bound, self.__upper_bound)
+			return [iInterval(other.__lower_bound, self.__upper_bound)]
 		
-		return None
+		return []
+	
+	def subtract(self, other: iInterval) -> List[iInterval]:
+		if not isinstance(other, iInterval):
+			raise Exception('iInterval may only be subtracted from another iInterval at this time.')
+		
+		left_exterior = self.left_exterior
+		right_exterior = self.right_exterior
+		
+		result_left = left_exterior.intersect(other) if left_exterior else []
+		result_right = right_exterior.intersect(other) if right_exterior else []
+		
+		return [*result_left, *result_right]
