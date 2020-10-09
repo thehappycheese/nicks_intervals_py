@@ -9,6 +9,7 @@ Also I am using this to process midi files.
 from __future__ import annotations
 
 import math
+import itertools
 from typing import List
 from typing import Union
 
@@ -96,37 +97,37 @@ class iInterval:
 			char_right = "+∞"
 		
 		if self.__lower_bound.closed:
-			char_left = "◀ "+char_left
+			char_left = "≤"+char_left  # ≤ [
 		else:
-			char_left = "◁ " + char_left
+			char_left = "<" + char_left  # < (
 		
 		if self.__upper_bound.closed:
-			char_right = char_right+" ▶"
+			char_right = char_right+"≥"  # ≥ ]
 		else:
-			char_right = char_right+" ▷"
-		return f"{char_left} {char_right}"
+			char_right = char_right+">"  # > )
+		return f"{char_left}, {char_right}"
 		
 	def __repr__(self):
-		return format(self, ".2f")
+		return format(self, ".3f")
 	
 	def print(self):
 		"""
 		prints intervals and multi intervals like this for debugging (only works for integer intervals):
-		   ├─────┤
-			├──────┤    ├────┤
+		╠═════╣
+			╠═════╣    ╞═══╣
 		"""
-		out = f"{self:3.0f} :"
+		out = f"{self:2.0f} :"
 		for i in range(0, int(min(50, self.end)) + 1):
-			if i < self.start:
+			if i < round(self.start):
 				out += " "
-			elif self.start == i == self.end:
+			elif round(self.start) == i == round(self.end):
 				out += "║"
-			elif i == self.start:
+			elif i == round(self.start):
 				if self.__lower_bound.closed:
 					out += "╠"
 				else:
 					out += "╞"
-			elif i == self.end:
+			elif i == round(self.end):
 				if self.__upper_bound.closed:
 					out += "╣"
 				else:
@@ -134,6 +135,7 @@ class iInterval:
 			else:
 				out += "═"
 		print(out)
+		return self
 	
 	@property
 	def start(self) -> float:
@@ -235,7 +237,8 @@ class iInterval:
 				return [iInterval.degenerate(Infinity)]
 		else:
 			return [iInterval(iBound(self.__upper_bound, not self.__upper_bound.closed), Infinity)]
-	
+		
+	@property
 	def exterior(self) -> List[iInterval]:
 		return [*self.left_exterior, *self.right_exterior]
 	
@@ -275,13 +278,22 @@ class iInterval:
 		return []
 	
 	def subtract(self, other: iInterval) -> List[iInterval]:
-		if not isinstance(other, iInterval):
-			raise Exception('iInterval may only be subtracted from another iInterval at this time.')
+		return [item for item in itertools.chain(*[exterior.intersect(self) for exterior in other.exterior])]
+	
+	def hull(self, other):
+		lowest_most_closed_bound = self.__lower_bound
 		
-		left_exterior = self.left_exterior
-		right_exterior = self.right_exterior
+		if math.isclose(other.__lower_bound, self.__lower_bound):
+			if other.__lower_bound.closed and self.__lower_bound.open:
+				lowest_most_closed_bound = other.__lower_bound
+		elif other.__lower_bound < self.__lower_bound:
+			lowest_most_closed_bound = other.__lower_bound
 		
-		result_left = left_exterior.intersect(other) if left_exterior else []
-		result_right = right_exterior.intersect(other) if right_exterior else []
+		highest_most_closed_bound = self.__upper_bound
+		if math.isclose(other.__upper_bound, self.__upper_bound):
+			if other.__upper_bound.closed and self.__upper_bound.open:
+				highest_most_closed_bound = other.__upper_bound
+		elif other.__upper_bound > self.__upper_bound:
+			highest_most_closed_bound = other.__upper_bound
 		
-		return [*result_left, *result_right]
+		return iInterval(lowest_most_closed_bound, highest_most_closed_bound);
