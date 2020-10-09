@@ -11,20 +11,20 @@ from iInterval import iInterval
 
 def test_iInterval_contains_value():
 	a = iInterval(1, 2, True, True)
-	assert a.contains_value(0.9) is False
-	assert a.contains_value(1.0) is True
-	assert a.contains_value(1.5) is True
-	assert a.contains_value(2.0) is True
-	assert a.contains_value(2.1) is False
+	assert a.contains_closed_bound(0.9) is False
+	assert a.contains_closed_bound(1.0) is True
+	assert a.contains_closed_bound(1.5) is True
+	assert a.contains_closed_bound(2.0) is True
+	assert a.contains_closed_bound(2.1) is False
 	
 	a = iInterval(1.0, 2.0, False, False)
 	
-	assert a.contains_value(0.0) is False
-	assert a.contains_value(1.0) is False
-	assert a.contains_value(1.000001) is True
-	assert a.contains_value(1.999999) is True
-	assert a.contains_value(2.0) is False
-	assert a.contains_value(3.0) is False
+	assert a.contains_closed_bound(0.0) is False
+	assert a.contains_closed_bound(1.0) is False
+	assert a.contains_closed_bound(1.000001) is True
+	assert a.contains_closed_bound(1.999999) is True
+	assert a.contains_closed_bound(2.0) is False
+	assert a.contains_closed_bound(3.0) is False
 
 
 def test_iInterval_contains_interval():
