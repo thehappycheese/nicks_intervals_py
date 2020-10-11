@@ -363,7 +363,7 @@ class Multi_Interval:
 				if f is not None:
 					try:
 						# assume f is a Multi_Interval
-						for pieces in f.intervals:
+						for pieces in f.__intervals:
 							new_interval_list.append(pieces)
 					except:
 						# f is an Interval
