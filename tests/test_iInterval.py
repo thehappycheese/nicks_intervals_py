@@ -3,10 +3,7 @@ import sys
 
 import pytest
 
-print(os.path.join(os.getcwd(), "..\\"))
-sys.path.insert(len(sys.path), os.path.join(os.getcwd(), "..\\"))
-if False:
-	from interval.iInterval import iInterval
+from Interval.iBound import iBound
 from Interval.iInterval import iInterval
 
 
@@ -17,6 +14,8 @@ def test_iInterval_init_argtype():
 		iInterval(1, 2, 'a')
 	with pytest.raises(TypeError):
 		iInterval(1, 2, False, 'a')
+	with pytest.raises(Exception):
+		iInterval(iBound(0, False), 1, False)
 
 
 def test_iInterval_init_reversed_not_permitted():
