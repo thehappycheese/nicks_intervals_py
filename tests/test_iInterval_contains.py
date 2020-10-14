@@ -5,7 +5,7 @@ import pytest
 print(os.path.join(os.getcwd(), "\\"))
 sys.path.insert(len(sys.path), os.path.join(os.getcwd(), "\\"))
 if False:
-	from interval.iInterval import iInterval
+	from Interval.iInterval import iInterval
 from Interval.iInterval import iInterval
 from Interval.iBound import iBound
 
