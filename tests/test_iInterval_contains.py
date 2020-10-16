@@ -2,12 +2,11 @@ import os
 import sys
 import pytest
 
-print(os.path.join(os.getcwd(), "\\"))
-sys.path.insert(len(sys.path), os.path.join(os.getcwd(), "\\"))
-if False:
-	from Interval.iInterval import iInterval
-from Interval.iInterval import iInterval
-from Interval.iBound import iBound
+#print(os.path.join(os.getcwd(), "\\"))
+#sys.path.insert(len(sys.path), os.path.join(os.getcwd(), "\\"))
+
+from NicksIntervals.iInterval import iInterval
+from NicksIntervals.iBound import iBound
 
 
 def test_iInterval_contains_value():

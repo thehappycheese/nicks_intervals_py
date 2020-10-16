@@ -3,8 +3,8 @@ import sys
 
 import pytest
 
-from Interval.iBound import iBound
-from Interval.iInterval import iInterval
+from NicksIntervals.iBound import iBound
+from NicksIntervals.iInterval import iInterval
 
 
 def test_iInterval_init_argtype():
