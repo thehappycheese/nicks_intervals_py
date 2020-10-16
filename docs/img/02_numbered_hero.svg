@@ -10,12 +10,12 @@
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
    width="89.212959mm"
-   height="41.373821mm"
-   viewBox="0 0 89.212959 41.373821"
+   height="48.875214mm"
+   viewBox="0 0 89.212959 48.875213"
    version="1.1"
    id="svg969"
    inkscape:version="0.92.4 (5da689c313, 2019-01-14)"
-   sodipodi:docname="01_numbered_hero.svg">
+   sodipodi:docname="02_numbered_hero.svg">
   <defs
      id="defs963" />
   <sodipodi:namedview
@@ -23,11 +23,11 @@
      pagecolor="#ffffff"
      bordercolor="#666666"
      borderopacity="1.0"
-     inkscape:pageopacity="0.0"
+     inkscape:pageopacity="1"
      inkscape:pageshadow="2"
      inkscape:zoom="2.8"
-     inkscape:cx="231.48382"
-     inkscape:cy="6.7817163"
+     inkscape:cx="220.41239"
+     inkscape:cy="70.84774"
      inkscape:document-units="mm"
      inkscape:current-layer="layer1"
      showgrid="false"
@@ -39,7 +39,8 @@
      inkscape:snap-bbox-edge-midpoints="false"
      inkscape:snap-midpoints="true"
      inkscape:snap-center="true"
-     inkscape:lockguides="true" />
+     inkscape:lockguides="true"
+     borderlayer="true" />
   <metadata
      id="metadata966">
     <rdf:RDF>
@@ -56,7 +57,14 @@
      inkscape:label="Layer 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-0.75066587,-261.68744)">
+     transform="translate(-0.75066586,-261.68744)">
+    <rect
+       style="opacity:1;vector-effect:none;fill:#ffffff;fill-opacity:1;stroke:#b7b7b7;stroke-width:0.484;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="rect1665"
+       width="122.65327"
+       height="74.272324"
+       x="-13.895912"
+       y="249.425" />
     <path
        style="opacity:1;vector-effect:none;fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.96800005;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
        d="M 34.357142,287.9306 H 56.357143"
@@ -375,5 +383,27 @@
          d="m 20.823292,289.43001 -0.756,2.44642 -0.756,-2.44642 z"
          style="fill:#000000;stroke:none;stroke-width:0.26458332px;stroke-linecap:butt;stroke-linejoin:miter;stroke-opacity:1" />
     </g>
+    <rect
+       style="opacity:1;vector-effect:none;fill:none;fill-opacity:1;stroke:#000000;stroke-width:0.48400006;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-dasharray:none;stroke-dashoffset:0;stroke-opacity:1"
+       id="rect1789-4-4"
+       width="86.728958"
+       height="13.924876"
+       x="1.9926659"
+       y="295.39578" />
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.82222223px;line-height:1.25;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold';text-align:center;letter-spacing:0px;word-spacing:0px;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.26458332"
+       x="45.33165"
+       y="307.10065"
+       id="text1742-6-3"><tspan
+         sodipodi:role="line"
+         id="tspan1740-7-6"
+         x="45.33165"
+         y="307.10065"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-family:sans-serif;-inkscape-font-specification:'sans-serif Bold';stroke-width:0.26458332">INTERVALS</tspan></text>
   </g>
+  <g
+     inkscape:groupmode="layer"
+     id="layer2"
+     inkscape:label="Background" />
 </svg>

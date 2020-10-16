@@ -1,10 +1,11 @@
 # Ponderings
 
+## Non-Overlapping intervals covering the real number line
 The Real Number line can be divided into Non-Overlapping  intervals as shown below:
 
 ![Image](/img/01_hero.svg)
 
-This a 'map' from any given real number to an interval. They could each have a name as follows:
+This a 'map' from any given real number to an interval:
 
 ![Image](/img/02_numbered_hero.svg)
 

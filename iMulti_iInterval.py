@@ -14,14 +14,6 @@ Infinity = float("inf")  # TODO: this is declared in iInterval as well. is there
 class iMulti_iInterval:
 	def __init__(self, iter_intervals: Iterable[iInterval]):
 		self.__intervals: Tuple[iInterval] = (*sorted(iter_intervals, key=lambda item: item.lower_bound),)
-		if len(self.__intervals) == 0:
-			# this may seem annoying to deal with in user code at first glance...
-			# but think about it... this library does not know what the user intends to represent with an empty Multi_Interval...
-			# the meaning is ambiguous.. like a reversed interval.
-			# the behaviour would depend on the obscure details of the internal implementation that are hard to document
-			# (shy of reading the sourcecode).
-			# The user might consider creating a subclass or a factory function to suit their needs and avoid the need to catch this error.
-			raise Exception("A multi interval may not have zero intervals.")
 		
 	@property
 	def intervals(self):

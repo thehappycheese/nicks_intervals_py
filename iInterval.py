@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import math
 import itertools
-from typing import Iterable
 from typing import List
 from typing import Tuple
 from typing import Union
@@ -41,14 +40,12 @@ class iInterval:
 		#  or be equal to the value of this object by overriding the __eq__?
 		#  >>> some_iInterval == iInterval.complete()
 		return iInterval(
-			lower_bound=-Infinity,
-			upper_bound=Infinity,
-			lower_bound_closed=True,
-			upper_bound_closed=True
+			lower_bound=iBound(Infinity, False),
+			upper_bound=iBound(-Infinity, True)
 		)
 	
 	@classmethod
-	def degenerate(cls, at: float = 0.0):
+	def degenerate(cls, value: float = 0.0):
 		# TODO: i am not sure these are needed in practice. If they can be eliminated that would be good.
 		#  Degenerate intervals are the same as a float.
 		#  They are not like a iBound which must be interpreted as upper or lower to truly make comparisons with them.
@@ -59,41 +56,11 @@ class iInterval:
 		
 		# TODO:write some tests to see if it actually works.
 		return iInterval(
-			lower_bound=at,
-			upper_bound=at,
-			lower_bound_closed=True,
-			upper_bound_closed=True
+			lower_bound=iBound(value, False),
+			upper_bound=iBound(value, True)
 		)
 	
-	def __init__(self, lower_bound: Union[float, iBound], upper_bound: Union[float, iBound], lower_bound_closed: bool = None, upper_bound_closed: bool = None):
-		"""
-		
-		:param lower_bound: either provide a float or an iBound. if a float is provided is converted internally. If a bound is provided its .closed property is used and lower_bound_closed must be None
-		:param upper_bound: ''
-		:param lower_bound_closed: bool (None by default which results in True)
-		:param upper_bound_closed: bool (None by default which results in True)
-		"""
-		if isinstance(lower_bound, iBound):
-			if lower_bound_closed is not None:
-				raise Exception("If iBounds are used in place of floats, then lower_bound_closed argument should not be provided")
-		elif isinstance(lower_bound, float) or isinstance(lower_bound, int):
-			if lower_bound_closed is None:
-				lower_bound_closed = True
-			if not isinstance(lower_bound_closed, bool):
-				raise TypeError("lower_bound_closed must be bool when lower bound is float.")
-			lower_bound = iBound(lower_bound, lower_bound_closed)
-		else:
-			raise TypeError("lower_bound mut be float or iBound")
-		
-		if isinstance(upper_bound, iBound):
-			if upper_bound_closed is not None:
-				raise Exception("If iBounds are used in place of floats, then upper_bound_closed argument should not be provided")
-		elif isinstance(upper_bound, float) or isinstance(upper_bound, int):
-			if upper_bound_closed is None:
-				upper_bound_closed = True
-			upper_bound = iBound(upper_bound, upper_bound_closed)
-		else:
-			raise TypeError("Lower bound incorrect type")
+	def __init__(self, lower_bound: iBound, upper_bound: iBound):
 		
 		self.__lower_bound: iBound = lower_bound
 		self.__upper_bound: iBound = upper_bound
@@ -102,7 +69,7 @@ class iInterval:
 		self.__is_degenerate: bool = False
 		
 		if lower_bound == upper_bound:
-			if self.__lower_bound.closed and self.__upper_bound.closed:
+			if self.__lower_bound.included_in_right and self.__upper_bound.included_in_left:
 				self.__is_degenerate = True
 			else:
 				raise Exception(f"Degenerate intervals (lower_bound==upper_bound) are only permitted when both bounds are closed.")
@@ -111,9 +78,10 @@ class iInterval:
 			# TODO: emit warning? infinitesimal intervals will cause havoc with other algorithms
 			#  im really on the fence about this one. i think i need to do more research about precision models
 			#  ima raise an exception here until i have a better idea.
+			raise Exception(f"Infinitesimal intervals are not cool: {lower_bound} <= {upper_bound} == {lower_bound<=upper_bound}")
 		elif lower_bound > upper_bound:
-			raise Exception(f"reversed intervals are not permitted. lower_bound must be less than or equal to upper_bound: {lower_bound}<={upper_bound} == {lower_bound<=upper_bound}")
-	
+			raise Exception(f"reversed intervals are not permitted. lower_bound must be less than or equal to upper_bound: {lower_bound} <= {upper_bound} == {lower_bound<=upper_bound}")
+		
 	def __format__(self, format_spec):
 		char_left = f"{format(self.__lower_bound, format_spec)}"
 		char_right = f"{format(self.__upper_bound, format_spec)}"
@@ -124,12 +92,12 @@ class iInterval:
 		if self.__upper_bound == Infinity:
 			char_right = "+∞"
 		
-		if self.__lower_bound.closed:
+		if self.__lower_bound.included_in_right:
 			char_left = "≤"+char_left  # ≤ [
 		else:
 			char_left = "<" + char_left  # < (
 		
-		if self.__upper_bound.closed:
+		if self.__upper_bound.included_in_left:
 			char_right = char_right+"≥"  # ≥ ]
 		else:
 			char_right = char_right+">"  # > )
@@ -154,12 +122,12 @@ class iInterval:
 			elif round(self.__lower_bound) == i == round(self.__upper_bound):
 				out += "║"
 			elif i == round(self.__lower_bound):
-				if self.__lower_bound.closed:
+				if self.__lower_bound.included_in_right:
 					out += "╠"
 				else:
 					out += "╞"
 			elif i == round(self.__upper_bound):
-				if self.__upper_bound.closed:
+				if self.__upper_bound.included_in_left:
 					out += "╣"
 				else:
 					out += "╡"
@@ -175,14 +143,6 @@ class iInterval:
 	@property
 	def upper_bound(self) -> iBound:
 		return self.__upper_bound
-	
-	@property
-	def lower_bound_closed(self) -> bool:
-		return self.__lower_bound.closed
-	
-	@property
-	def upper_bound_closed(self) -> bool:
-		return self.__upper_bound.closed
 	
 	@property
 	def is_degenerate(self) -> bool:
@@ -203,11 +163,11 @@ class iInterval:
 		if self.__is_degenerate:
 			return math.isclose(self.__lower_bound, value)
 		else:
-			if self.__lower_bound < value < self.__upper_bound:
+			if self.__lower_bound.contains(value) and self.__lower_bound.included_in_right:
 				return True
-			elif self.__lower_bound.closed and math.isclose(value, self.__lower_bound):
+			elif self.__upper_bound.contains(value) and self.__upper_bound.included_in_left:
 				return True
-			elif self.__upper_bound.closed and math.isclose(value, self.__upper_bound):
+			elif self.__lower_bound < value < self.__upper_bound:
 				return True
 		return False
 	
@@ -242,24 +202,24 @@ class iInterval:
 			return self.contains_lower_bound(other.__lower_bound) and self.contains_upper_bound(other.__upper_bound)
 	
 	@property
-	def left_exterior(self) -> List[iInterval]:
+	def left_exterior(self) -> iMulti_iInterval:
 		if self.__lower_bound == -Infinity:
 			if self.__lower_bound.closed:
-				return []
+				return iMulti_iInterval(tuple())
 			else:
-				return [iInterval.degenerate(-Infinity)]
+				return iMulti_iInterval((iInterval.degenerate(-Infinity),))
 		else:
-			return [iInterval(-Infinity, iBound(self.__lower_bound, not self.__lower_bound.closed))]
+			return iMulti_iInterval((iInterval(-Infinity, iBound(self.__lower_bound, not self.__lower_bound.closed)),))
 	
 	@property
-	def right_exterior(self) -> iInterval:
+	def right_exterior(self) -> iMulti_iInterval:
 		if self.__upper_bound == Infinity:
 			if self.__upper_bound.closed:
-				return []
+				return iMulti_iInterval(tuple())
 			else:
-				return [iInterval.degenerate(Infinity)]
+				return iMulti_iInterval((iInterval.degenerate(Infinity),))
 		else:
-			return [iInterval(iBound(self.__upper_bound, not self.__upper_bound.closed), Infinity)]
+			return iMulti_iInterval((iInterval(iBound(self.__upper_bound, not self.__upper_bound.closed), Infinity),))
 		
 	@property
 	def exterior(self) -> iMulti_iInterval:

@@ -1,28 +1,34 @@
+import math
+
+
 class iBound(float):
-	"""inherits from float; adds an 'open' property. closed property is also provided.
-	Closed means that the value at the bound is included in the interval
-	Open means the value at the bound is not part of the interval.
 	
-	This is similar to the concept of A is 'less than or equal to' B  compared with A is 'less than' B
-	
-	In the case of intervals things are difficult because when we approach from one side things are included, but when we approach from the other, they may or may not be excluded.
-	When a bound is closed, it should be safe to use math.isclose() in place of == (all this nonsense has to be handled in the iInterval class)
-	
-	Since the bound class may be reused by multiple intervals it is immutable.
-	This also means that it has no relationship with it's parent interval class; this bound cannot know if it is an upper bound or a lower bound.
-	"""
-	def __init__(self, value: float, closed: bool = True):
-		if not isinstance(closed, bool):
-			raise TypeError("iBound(open_bound=...) must be bool")
-		self.__closed: bool = closed
+	def __init__(self, value: float, included_in_left: bool = False):
+		"""
+		:param included_in_left: This bound is included in interval to the left
+		"""
+		self.__closed_left = included_in_left
+		if self == float("-inf") and self.included_in_left:
+			raise Exception("Bounds at -inf must be closed_right")
+		elif self == float("inf") and self.included_in_right:
+			raise Exception("Bounds at inf must be closed_left")
 	
 	def __new__(cls, *args, **kwargs):
 		return super().__new__(cls, args[0])
 	
 	@property
-	def open(self) -> bool:
-		return not self.__closed
+	def included_in_left(self) -> bool:
+		"""included in interval to the left"""
+		return self.__closed_left
 	
 	@property
-	def closed(self) -> bool:
-		return self.__closed
+	def included_in_right(self) -> bool:
+		"""included in interval to the right"""
+		return not self.__closed_left
+	
+	def inverted(self):
+		return iBound(float(self), not self.__closed_left)
+	
+	def contains(self, value: float):
+		"""math.isclose"""
+		return math.isclose(self, value)

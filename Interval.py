@@ -1,4 +1,4 @@
-"""
+ """
 Nicholas Archer
 2020/06/09
 
@@ -15,7 +15,7 @@ from typing import Iterable, Union, List, Any
 class Interval:
 	def __init__(self, start: Any, end: Any):
 		"""To initialise self.start & self.end with a type other than float, make a subclass of Interval().
-		This will give the best auto-completion and type checking results in pycharm.
+		This will give the best auto-completion and type ch  ecking results in pycharm.
 		The subclass of interval only needs to provide a replacement for this __init__()
 
 		Custom types used for self.start and self.end must:
