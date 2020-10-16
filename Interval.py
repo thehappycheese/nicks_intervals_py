@@ -1,4 +1,4 @@
- """
+"""
 Nicholas Archer
 2020/06/09
 
@@ -15,7 +15,7 @@ from typing import Iterable, Union, List, Any
 class Interval:
 	def __init__(self, start: Any, end: Any):
 		"""To initialise self.start & self.end with a type other than float, make a subclass of Interval().
-		This will give the best auto-completion and type ch  ecking results in pycharm.
+		This will give the best auto-completion and type checking results in pycharm.
 		The subclass of interval only needs to provide a replacement for this __init__()
 
 		Custom types used for self.start and self.end must:
@@ -28,7 +28,7 @@ class Interval:
 		"""
 		self.start: Any = start
 		self.end: Any = end
-		
+	
 	@classmethod
 	def make_infinite_full(cls) -> Interval:
 		"""
@@ -44,7 +44,7 @@ class Interval:
 		"""
 		# not using cls to construct; if cls using something SupportsFloat instead of float, there is no way for us to get the maximum and minimum value
 		return Interval(float('inf'), float('-inf'))
-
+	
 	def print(self):
 		"""
 		prints intervals and multi intervals like this for debugging (only works for integer intervals):
@@ -64,7 +64,7 @@ class Interval:
 			else:
 				out += "─"
 		print(out)
-		
+	
 	def __format__(self, format_spec):
 		return f"{self.__class__.__name__}({format(self.start, format_spec)}, {format(self.end, format_spec)})"
 	
@@ -134,7 +134,7 @@ class Interval:
 			else:
 				return result
 		elif isinstance(other, Interval):
-	
+			
 			#  |---|
 			#        |---|
 			if self.end < other.start:  # less than but not equal; zero length intersection will pass over
@@ -223,7 +223,7 @@ class Interval:
 				return self.end > float(other) > self.start
 			except Exception as e:
 				raise Exception("Interval.intersects() failed to find a valid branch. Has there been a type error?") from e
-				
+	
 	def relate_DE_9IM(self, other: Interval):
 		# 			Interior Boundary Exterior
 		# Interior  T/F      T/F      T/F
@@ -233,7 +233,7 @@ class Interval:
 		# represented as [9]
 		raise Exception("not implemented: very hard with floating points.")
 		pass
-		
+	
 	def union(self, other: Interval) -> Union[Interval, Multi_Interval]:
 		if self.intersect(other) is not None:
 			return self.hull(other)
@@ -295,10 +295,10 @@ class Interval:
 			raise ValueError("Interval.subtract() had some kind of malfunction and did not find a result")
 		else:
 			raise NotImplementedError("Cannot subtract unknown type")
-	
+
 
 class Multi_Interval:
-
+	
 	def __init__(self, iter_intervals: Iterable[Interval]):
 		""" Intervals provided to this initialiser are added without further processing.
 		"""
@@ -308,11 +308,11 @@ class Multi_Interval:
 			self.intervals.append(interval)
 	
 	def __format__(self, format_spec):
-		return f"Multi_Interval[{len(self.intervals)}]([{', '.join(['...'+str(len(self.intervals)) if index==4 else format(interval, format_spec) for index, interval in enumerate(self.intervals) if index<5])}])"
-		
+		return f"Multi_Interval[{len(self.intervals)}]([{', '.join(['...' + str(len(self.intervals)) if index == 4 else format(interval, format_spec) for index, interval in enumerate(self.intervals) if index < 5])}])"
+	
 	def __repr__(self):
 		return self.__format__(".2f")
-		
+	
 	def print(self):
 		print("Multi_Interval:")
 		for sub_interval in self.intervals:
@@ -363,7 +363,7 @@ class Multi_Interval:
 				if f is not None:
 					try:
 						# assume f is a Multi_Interval
-						for pieces in f.__intervals:
+						for pieces in f.intervals:
 							new_interval_list.append(pieces)
 					except:
 						# f is an Interval
@@ -422,14 +422,14 @@ class Multi_Interval:
 			raise Exception("add soft failed")
 		
 		return self
-		
+	
 	def add_merge(self, interval_to_add: Interval) -> Multi_Interval:
 		"""Add Interval() to Multi_Interval(), merge with any overlapping or touching intervals to prevent overlaps
 		preserves existing intervals that are touching, only merges existing intervals which touch or intersect with the new interval
 		:return: self
 		"""
 		# TODO: Make multi interval compatible
-
+		
 		original_interval_to_add = interval_to_add
 		
 		must_restart = True
