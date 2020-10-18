@@ -29,6 +29,11 @@ def resolve_iterable_of_iInterval_to_type(intervals: Union[List[iInterval], Tupl
 		return iMulti_iInterval(intervals)
 
 
+class null_iInterval:
+	def __iter__(self):
+		return iter([])
+
+
 class iInterval:
 	"""Immutable Interval based on python's built in floats. Nothing fancy."""
 	
@@ -60,7 +65,28 @@ class iInterval:
 			upper_bound=iBound(value, True)
 		)
 	
+	@classmethod
+	def closed(cls, lower_bound: float, upper_bound: float):
+		return iInterval(iBound(lower_bound, False), iBound(upper_bound, True))
+	
+	@classmethod
+	def open(cls, lower_bound: float, upper_bound: float):
+		return iInterval(iBound(lower_bound, True), iBound(upper_bound, False))
+	
+	@classmethod
+	def open_closed(cls, lower_bound: float, upper_bound: float):
+		return iInterval(iBound(lower_bound, True), iBound(upper_bound, True))
+	
+	@classmethod
+	def closed_open(cls, lower_bound: float, upper_bound: float):
+		return iInterval(iBound(lower_bound, False), iBound(upper_bound, False))
+	
 	def __init__(self, lower_bound: iBound, upper_bound: iBound):
+		try:
+			assert isinstance(lower_bound, iBound)
+			assert isinstance(upper_bound, iBound)
+		except AssertionError as e:
+			raise TypeError("Bounds must be an instance of iBound")
 		
 		self.__lower_bound: iBound = lower_bound
 		self.__upper_bound: iBound = upper_bound
@@ -163,9 +189,9 @@ class iInterval:
 		if self.__is_degenerate:
 			return math.isclose(self.__lower_bound, value)
 		else:
-			if self.__lower_bound.contains(value) and self.__lower_bound.included_in_right:
+			if math.isclose(self.__lower_bound, value) and self.__lower_bound.included_in_right:
 				return True
-			elif self.__upper_bound.contains(value) and self.__upper_bound.included_in_left:
+			elif math.isclose(self.__upper_bound, value) and self.__upper_bound.included_in_left:
 				return True
 			elif self.__lower_bound < value < self.__upper_bound:
 				return True
@@ -173,25 +199,25 @@ class iInterval:
 	
 	def contains_upper_bound(self, bound: iBound) -> bool:
 		if self.__is_degenerate and math.isclose(self.__lower_bound, bound):
-			return True
+			return bound.included_in_left
 		else:
-			if self.__upper_bound.open and bound.open and math.isclose(self.__upper_bound, bound):
-				return True
-			if bound.open and math.isclose(self.__lower_bound, bound):
-				return False
-			if self.contains_value(bound):
+			if math.isclose(self.__lower_bound, bound):
+				return self.__lower_bound.included_in_right and bound.included_in_left
+			if math.isclose(self.__upper_bound, bound):
+				return not (self.__upper_bound.included_in_right and bound.included_in_left)
+			elif self.__lower_bound < bound < self.__upper_bound:
 				return True
 		return False
 	
 	def contains_lower_bound(self, bound: iBound) -> bool:
 		if self.__is_degenerate and math.isclose(self.__upper_bound, bound):
-			return True
+			return bound.included_in_right
 		else:
-			if self.__lower_bound.open and bound.open and math.isclose(self.__lower_bound, bound):
-				return True
-			if bound.open and math.isclose(self.__upper_bound, bound):
-				return False
-			if self.contains_value(bound):
+			if math.isclose(self.__lower_bound, bound):
+				return not (self.__lower_bound.included_in_left and bound.included_in_right)
+			if math.isclose(self.__upper_bound, bound):
+				return self.__upper_bound.included_in_left and bound.included_in_right
+			if self.__lower_bound < bound < self.__upper_bound:
 				return True
 		return False
 		
@@ -202,28 +228,22 @@ class iInterval:
 			return self.contains_lower_bound(other.__lower_bound) and self.contains_upper_bound(other.__upper_bound)
 	
 	@property
-	def left_exterior(self) -> iMulti_iInterval:
+	def left_exterior(self) -> Union[iInterval, null_iInterval]:
 		if self.__lower_bound == -Infinity:
-			if self.__lower_bound.closed:
-				return iMulti_iInterval(tuple())
-			else:
-				return iMulti_iInterval((iInterval.degenerate(-Infinity),))
+			return null_iInterval()
 		else:
-			return iMulti_iInterval((iInterval(-Infinity, iBound(self.__lower_bound, not self.__lower_bound.closed)),))
+			return iInterval(iBound(-Infinity, False), self.__lower_bound.inverted())
 	
 	@property
-	def right_exterior(self) -> iMulti_iInterval:
+	def right_exterior(self) -> Union[iInterval, null_iInterval]:
 		if self.__upper_bound == Infinity:
-			if self.__upper_bound.closed:
-				return iMulti_iInterval(tuple())
-			else:
-				return iMulti_iInterval((iInterval.degenerate(Infinity),))
+			return null_iInterval()
 		else:
-			return iMulti_iInterval((iInterval(iBound(self.__upper_bound, not self.__upper_bound.closed), Infinity),))
+			return iInterval(self.__upper_bound.inverted(), iBound(Infinity, True))
 		
 	@property
 	def exterior(self) -> iMulti_iInterval:
-		return iMulti_iInterval((*self.left_exterior, *self.right_exterior))
+		return resolve_iterable_of_iInterval_to_type((*self.left_exterior, *self.right_exterior))
 	
 	def intersects(self, other: Union[iInterval, iMulti_iInterval]) -> bool:
 		for other_interval in other:

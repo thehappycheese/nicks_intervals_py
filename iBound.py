@@ -9,9 +9,9 @@ class iBound(float):
 		"""
 		self.__closed_left = included_in_left
 		if self == float("-inf") and self.included_in_left:
-			raise Exception("Bounds at -inf must be closed_right")
+			raise Exception("Bounds at -inf must be included_in_right")
 		elif self == float("inf") and self.included_in_right:
-			raise Exception("Bounds at inf must be closed_left")
+			raise Exception("Bounds at inf must be included_in_left")
 	
 	def __new__(cls, *args, **kwargs):
 		return super().__new__(cls, args[0])
@@ -29,6 +29,11 @@ class iBound(float):
 	def inverted(self):
 		return iBound(float(self), not self.__closed_left)
 	
-	def contains(self, value: float):
-		"""math.isclose"""
-		return math.isclose(self, value)
+	def __format__(self, format_spec):
+		arrow = "🡆"
+		if self.included_in_left:
+			arrow = "🡄"
+		return "iBound("+(f"{{:{format_spec}}}").format(float(self))+","+arrow+")"
+	
+	def __repr__(self):
+		return format(self, ".2f")

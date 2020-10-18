@@ -10,14 +10,14 @@ from NicksIntervals.iBound import iBound
 
 
 def test_iInterval_contains_value():
-	a = iInterval(1, 2, True, True)
+	a = iInterval.closed(1.0, 2.0)
 	assert a.contains_value(0.9) is False
 	assert a.contains_value(1.0) is True
 	assert a.contains_value(1.5) is True
 	assert a.contains_value(2.0) is True
 	assert a.contains_value(2.1) is False
 	
-	a = iInterval(1.0, 2.0, False, False)
+	a = iInterval.open(1.0, 2.0)
 	assert a.contains_value(0.0) is False
 	assert a.contains_value(1.0) is False
 	assert a.contains_value(1.000001) is True
