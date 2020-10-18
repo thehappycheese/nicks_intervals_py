@@ -6,7 +6,10 @@ import pytest
 #sys.path.insert(len(sys.path), os.path.join(os.getcwd(), "\\"))
 
 from NicksIntervals.iInterval import iInterval
-from NicksIntervals.iBound import iBound
+from NicksIntervals.iBound import iBound, PART_OF_LEFT, PART_OF_RIGHT
+
+
+
 
 
 def test_iInterval_contains_value():

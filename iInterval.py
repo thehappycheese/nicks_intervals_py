@@ -95,7 +95,7 @@ class iInterval:
 		self.__is_degenerate: bool = False
 		
 		if lower_bound == upper_bound:
-			if self.__lower_bound.included_in_right and self.__upper_bound.included_in_left:
+			if self.__lower_bound.part_of_right and self.__upper_bound.part_of_left:
 				self.__is_degenerate = True
 			else:
 				raise Exception(f"Degenerate intervals (lower_bound==upper_bound) are only permitted when both bounds are closed.")
@@ -118,12 +118,12 @@ class iInterval:
 		if self.__upper_bound == Infinity:
 			char_right = "+∞"
 		
-		if self.__lower_bound.included_in_right:
+		if self.__lower_bound.part_of_right:
 			char_left = "≤"+char_left  # ≤ [
 		else:
 			char_left = "<" + char_left  # < (
 		
-		if self.__upper_bound.included_in_left:
+		if self.__upper_bound.part_of_left:
 			char_right = char_right+"≥"  # ≥ ]
 		else:
 			char_right = char_right+">"  # > )
@@ -148,12 +148,12 @@ class iInterval:
 			elif round(self.__lower_bound) == i == round(self.__upper_bound):
 				out += "║"
 			elif i == round(self.__lower_bound):
-				if self.__lower_bound.included_in_right:
+				if self.__lower_bound.part_of_right:
 					out += "╠"
 				else:
 					out += "╞"
 			elif i == round(self.__upper_bound):
-				if self.__upper_bound.included_in_left:
+				if self.__upper_bound.part_of_left:
 					out += "╣"
 				else:
 					out += "╡"
@@ -189,9 +189,9 @@ class iInterval:
 		if self.__is_degenerate:
 			return math.isclose(self.__lower_bound, value)
 		else:
-			if math.isclose(self.__lower_bound, value) and self.__lower_bound.included_in_right:
+			if math.isclose(self.__lower_bound, value) and self.__lower_bound.part_of_right:
 				return True
-			elif math.isclose(self.__upper_bound, value) and self.__upper_bound.included_in_left:
+			elif math.isclose(self.__upper_bound, value) and self.__upper_bound.part_of_left:
 				return True
 			elif self.__lower_bound < value < self.__upper_bound:
 				return True
@@ -199,24 +199,24 @@ class iInterval:
 	
 	def contains_upper_bound(self, bound: iBound) -> bool:
 		if self.__is_degenerate and math.isclose(self.__lower_bound, bound):
-			return bound.included_in_left
+			return bound.part_of_left
 		else:
 			if math.isclose(self.__lower_bound, bound):
-				return self.__lower_bound.included_in_right and bound.included_in_left
+				return self.__lower_bound.part_of_right and bound.part_of_left
 			if math.isclose(self.__upper_bound, bound):
-				return not (self.__upper_bound.included_in_right and bound.included_in_left)
+				return not (self.__upper_bound.part_of_right and bound.part_of_left)
 			elif self.__lower_bound < bound < self.__upper_bound:
 				return True
 		return False
 	
 	def contains_lower_bound(self, bound: iBound) -> bool:
 		if self.__is_degenerate and math.isclose(self.__upper_bound, bound):
-			return bound.included_in_right
+			return bound.part_of_right
 		else:
 			if math.isclose(self.__lower_bound, bound):
-				return not (self.__lower_bound.included_in_left and bound.included_in_right)
+				return not (self.__lower_bound.part_of_left and bound.part_of_right)
 			if math.isclose(self.__upper_bound, bound):
-				return self.__upper_bound.included_in_left and bound.included_in_right
+				return self.__upper_bound.part_of_left and bound.part_of_right
 			if self.__lower_bound < bound < self.__upper_bound:
 				return True
 		return False
