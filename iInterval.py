@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import math
 import itertools
-from typing import List
+from typing import List, Any
 from typing import Tuple
 from typing import Union
 
@@ -29,7 +29,30 @@ def resolve_iterable_of_iInterval_to_type(intervals: Union[List[iInterval], Tupl
 		return iMulti_iInterval(intervals)
 
 
-class null_iInterval:
+class iInterval_Operation_Result:
+	def __init__(self, value: Union[Nothing, Any]):
+		self._value = value
+		
+	def get_list(self):
+		return list(iter(self._value))
+	
+	def __iter__(self):
+		if isinstance(self._value, Nothing):
+			return iter([])
+		try:
+			iterable = iter(self._value)
+			return iterable
+		except:
+			return iter([])
+
+
+class Nothing(iInterval_Operation_Result):
+	def __init__(self):
+		super().__init__(None)
+	
+	def get_list(self):
+		return []
+
 	def __iter__(self):
 		return iter([])
 
@@ -228,22 +251,22 @@ class iInterval:
 			return self.contains_lower_bound(other.__lower_bound) and self.contains_upper_bound(other.__upper_bound)
 	
 	@property
-	def left_exterior(self) -> Union[iInterval, null_iInterval]:
+	def left_exterior(self) -> iInterval_Operation_Result:
 		if self.__lower_bound == -Infinity:
-			return null_iInterval()
+			return Nothing()
 		else:
-			return iInterval(iBound(-Infinity, False), self.__lower_bound.inverted())
+			return iInterval_Operation_Result(iInterval(iBound(-Infinity, False), self.__lower_bound.inverted()))
 	
 	@property
-	def right_exterior(self) -> Union[iInterval, null_iInterval]:
+	def right_exterior(self) -> iInterval_Operation_Result:
 		if self.__upper_bound == Infinity:
-			return null_iInterval()
+			return Nothing()
 		else:
-			return iInterval(self.__upper_bound.inverted(), iBound(Infinity, True))
+			return iInterval_Operation_Result(iInterval(self.__upper_bound.inverted(), iBound(Infinity, True)))
 		
 	@property
-	def exterior(self) -> iMulti_iInterval:
-		return resolve_iterable_of_iInterval_to_type((*self.left_exterior, *self.right_exterior))
+	def exterior(self) -> iInterval_Operation_Result:
+		return iInterval_Operation_Result((*self.left_exterior, *self.right_exterior))
 	
 	def intersects(self, other: Union[iInterval, iMulti_iInterval]) -> bool:
 		for other_interval in other:
