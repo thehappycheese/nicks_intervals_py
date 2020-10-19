@@ -29,55 +29,66 @@ def test_iInterval_contains_value():
 	assert a.contains_value(3.0) is False
 
 
-def test_iInterval_contains_lower_bound():
-	# Touching inside cases:
-	assert iInterval(iBound(1, False), iBound(2)).contains_lower_bound(iBound(1, False)) is True  # ?? amounts to 'contains nothing'... but is true since other bound is not inclusive
-	assert iInterval(iBound(1, False), iBound(2)).contains_lower_bound(iBound(1, True)) is False
-	assert iInterval(iBound(1, True), iBound(2)).contains_lower_bound(iBound(1, False)) is True
-	assert iInterval(iBound(1, True), iBound(2)).contains_lower_bound(iBound(1, True)) is True
+def test_iInterval_contains_bound():
 	
-	# Touching outside cases:
-	assert iInterval(iBound(1), iBound(2, False)).contains_lower_bound(iBound(2, False)) is False
-	assert iInterval(iBound(1), iBound(2, False)).contains_lower_bound(iBound(2, True)) is False
-	assert iInterval(iBound(1), iBound(2, True)).contains_lower_bound(iBound(2, False)) is False
-	assert iInterval(iBound(1), iBound(2, True)).contains_lower_bound(iBound(2, True)) is True
-
-
-def test_iInterval_contains_upper_bound():
-	# Touching inside cases:
-	assert iInterval(iBound(1), iBound(2, False)).contains_upper_bound(iBound(2, False)) is True  # ?? amounts to 'contains nothing'... but is true since other bound is not inclusive
-	assert iInterval(iBound(1), iBound(2, False)).contains_upper_bound(iBound(2, True)) is False
-	assert iInterval(iBound(1), iBound(2, True)).contains_upper_bound(iBound(2, False)) is True
-	assert iInterval(iBound(1), iBound(2, True)).contains_upper_bound(iBound(2, True)) is True
+	# See ponderings.md in /docs for graphical representation of Truth Table
 	
-	# Touching outside cases:
-	assert iInterval(iBound(1, False), iBound(2)).contains_upper_bound(iBound(1, False)) is False
-	assert iInterval(iBound(1, False), iBound(2)).contains_upper_bound(iBound(1, True)) is False
-	assert iInterval(iBound(1, True), iBound(2)).contains_upper_bound(iBound(1, False)) is False
-	assert iInterval(iBound(1, True), iBound(2)).contains_upper_bound(iBound(1, True)) is True
+	interval_open = iInterval.open(1, 2)
+	interval_closed = iInterval.closed(1, 2)
+	
+	lower_left	= iBound(1, PART_OF_LEFT)
+	lower_right	= iBound(1, PART_OF_RIGHT)
+	
+	upper_left	= iBound(2, PART_OF_LEFT)
+	upper_right	= iBound(2, PART_OF_RIGHT)
+	
+	# Open Upper Contains
+	assert interval_open.contains_upper_bound(upper_right) is True
+	assert interval_open.contains_upper_bound(upper_left) is False
+	assert interval_open.contains_lower_bound(upper_left) is False
+	assert interval_open.contains_lower_bound(upper_right) is False
+	
+	# Open Lower Contains
+	assert interval_open.contains_upper_bound(lower_right) is False
+	assert interval_open.contains_upper_bound(lower_left) is False
+	assert interval_open.contains_lower_bound(lower_left) is True
+	assert interval_open.contains_lower_bound(lower_right) is False
+	
+	# Closed Upper Contains
+	assert interval_closed.contains_upper_bound(upper_right) is True
+	assert interval_closed.contains_upper_bound(upper_left) is True
+	assert interval_closed.contains_lower_bound(upper_left) is False
+	assert interval_closed.contains_lower_bound(upper_right) is True
+	
+	# Closed Lower Contains
+	assert interval_closed.contains_upper_bound(lower_right) is False
+	assert interval_closed.contains_upper_bound(lower_left) is True
+	assert interval_closed.contains_lower_bound(lower_left) is True
+	assert interval_closed.contains_lower_bound(lower_right) is True
+
 
 def test_iInterval_contains_interval():
+	
+	# TODO: test some edge cases with open and closed ends.
+	
 	a = 40.0
 	b = 60.0
 	
 	def both_bounds_closed(mod):
 		# both bounds closed
-		assert iInterval(a, b).contains_interval(iInterval(a, b)) is True
-		assert iInterval(a, b).contains_interval(iInterval(a, b - mod)) is True
-		assert iInterval(a, b).contains_interval(iInterval(a + mod, b)) is True
-		assert iInterval(a, b).contains_interval(iInterval(a + mod, b - mod)) is True
-		
-		assert iInterval(a, b).contains_interval(iInterval(a - mod, b)) is False
-		assert iInterval(a, b).contains_interval(iInterval(a, b + mod)) is False
-		assert iInterval(a, b).contains_interval(iInterval(a - mod, b + mod)) is False
-		
-		assert iInterval(a, b).contains_interval(iInterval(a + mod, b + mod)) is False
-		assert iInterval(a, b).contains_interval(iInterval(a - mod, b - mod)) is False
-		
-		assert iInterval(a, b).contains_interval(iInterval(a - 10, a)) is False
-		assert iInterval(a, b).contains_interval(iInterval(a - 10, a-mod)) is False
-		assert iInterval(a, b).contains_interval(iInterval(b, b+10)) is False
-		assert iInterval(a, b).contains_interval(iInterval(b+mod, b + 10)) is False
+		assert iInterval.closed(a, b).contains_interval(iInterval.closed(a, b)) is True
+		assert iInterval.closed(a, b).contains_interval(iInterval.closed(a, b - mod)) is True
+		assert iInterval.closed(a, b).contains_interval(iInterval.closed(a + mod, b)) is True
+		assert iInterval.closed(a, b).contains_interval(iInterval.closed(a + mod, b - mod)) is True
+		assert iInterval.closed(a, b).contains_interval(iInterval.closed(a - mod, b)) is False
+		assert iInterval.closed(a, b).contains_interval(iInterval.closed(a, b + mod)) is False
+		assert iInterval.closed(a, b).contains_interval(iInterval.closed(a - mod, b + mod)) is False
+		assert iInterval.closed(a, b).contains_interval(iInterval.closed(a + mod, b + mod)) is False
+		assert iInterval.closed(a, b).contains_interval(iInterval.closed(a - mod, b - mod)) is False
+		assert iInterval.closed(a, b).contains_interval(iInterval.closed(a - 10, a)) is False
+		assert iInterval.closed(a, b).contains_interval(iInterval.closed(a - 10, a-mod)) is False
+		assert iInterval.closed(a, b).contains_interval(iInterval.closed(b, b+10)) is False
+		assert iInterval.closed(a, b).contains_interval(iInterval.closed(b+mod, b + 10)) is False
 	
 	both_bounds_closed(1.0)
 	both_bounds_closed(1.0e-7)

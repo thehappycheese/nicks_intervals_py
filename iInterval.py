@@ -109,8 +109,8 @@ class iInterval:
 			raise Exception(f"reversed intervals are not permitted. lower_bound must be less than or equal to upper_bound: {lower_bound} <= {upper_bound} == {lower_bound<=upper_bound}")
 		
 	def __format__(self, format_spec):
-		char_left = f"{format(self.__lower_bound, format_spec)}"
-		char_right = f"{format(self.__upper_bound, format_spec)}"
+		char_left = f"{format(float(self.__lower_bound), format_spec)}"
+		char_right = f"{format(float(self.__upper_bound), format_spec)}"
 		
 		if self.__lower_bound == -Infinity:
 			char_left = "-∞"
