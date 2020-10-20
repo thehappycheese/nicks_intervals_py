@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import math
 import itertools
-from typing import List, Any
+from typing import List, Any, Iterable
 from typing import Tuple
 from typing import Union
 
@@ -18,44 +18,6 @@ from .iBound import iBound
 from .iMulti_iInterval import iMulti_iInterval
 
 Infinity = float('inf')
-
-
-def resolve_iterable_of_iInterval_to_type(intervals: Union[List[iInterval], Tuple[iInterval]]) -> Union[None, iInterval, iMulti_iInterval]:
-	if len(intervals) == 0:
-		return None
-	elif len(intervals) == 1:
-		return intervals[0]
-	else:
-		return iMulti_iInterval(intervals)
-
-
-class iInterval_Operation_Result:
-	def __init__(self, value: Union[Nothing, Any]):
-		self._value = value
-		
-	def get_list(self):
-		return list(iter(self._value))
-	
-	def __iter__(self):
-		if isinstance(self._value, Nothing):
-			return iter([])
-		try:
-			iterable = iter(self._value)
-			return iterable
-		except:
-			return iter([])
-
-
-class Nothing(iInterval_Operation_Result):
-	def __init__(self):
-		super().__init__(None)
-	
-	def get_list(self):
-		return []
-
-	def __iter__(self):
-		return iter([])
-
 
 class iInterval:
 	"""Immutable Interval based on python's built in floats. Nothing fancy."""
@@ -251,35 +213,35 @@ class iInterval:
 			return self.contains_lower_bound(other.__lower_bound) and self.contains_upper_bound(other.__upper_bound)
 	
 	@property
-	def left_exterior(self) -> iInterval_Operation_Result:
+	def left_exterior(self) -> Tuple[iInterval, ...]:
 		if self.__lower_bound == -Infinity:
-			return Nothing()
+			return tuple()
 		else:
-			return iInterval_Operation_Result(iInterval(iBound(-Infinity, False), self.__lower_bound.inverted()))
+			return (iInterval(iBound(-Infinity, False), self.__lower_bound), )
 	
 	@property
-	def right_exterior(self) -> iInterval_Operation_Result:
+	def right_exterior(self) -> Union[Tuple[()], Tuple[iInterval]]:
 		if self.__upper_bound == Infinity:
-			return Nothing()
+			return tuple()
 		else:
-			return iInterval_Operation_Result(iInterval(self.__upper_bound.inverted(), iBound(Infinity, True)))
+			return (iInterval(self.__upper_bound, iBound(Infinity, True)), )
 		
 	@property
-	def exterior(self) -> iInterval_Operation_Result:
-		return iInterval_Operation_Result((*self.left_exterior, *self.right_exterior))
+	def exterior(self) -> Union[Tuple[()], Tuple[iInterval], Tuple[iInterval, iInterval]]:
+		return (*self.left_exterior, *self.right_exterior)
 	
-	def intersects(self, other: Union[iInterval, iMulti_iInterval]) -> bool:
+	def intersects(self, other: Iterable[iInterval]) -> bool:
 		for other_interval in other:
 			if (
 				self.contains_lower_bound(other_interval.__lower_bound) or
 				self.contains_upper_bound(other_interval.__upper_bound) or
-				other.contains_lower_bound(self.__lower_bound) or
-				other.contains_upper_bound(self.__upper_bound)
+				other_interval.contains_lower_bound(self.__lower_bound) or
+				other_interval.contains_upper_bound(self.__upper_bound)
 			):
 				return True
 		return False
 	
-	def intersect(self, other: Union[iInterval, iMulti_iInterval]):
+	def intersect(self, other: Iterable[iInterval]):
 		result = []
 		for other_interval in other:
 			self_contains_other_lower_bound = self.contains_lower_bound(other_interval.__lower_bound)
@@ -291,15 +253,15 @@ class iInterval:
 			if self_contains_other_lower_bound and self_contains_other_upper_bound:
 				result.extend(other_interval)
 			
-			other_contains_self_lower_bound = other.contains_lower_bound(self.__lower_bound)
+			other_contains_self_lower_bound = other_interval.contains_lower_bound(self.__lower_bound)
 			
 			#   self:        ╠══════════╣
 			#  other:  ╠════════════╣
 			# result:        ╠══════╣
 			if other_contains_self_lower_bound:
-				result.extend(iInterval(self.__lower_bound, other.__upper_bound))
+				result.extend(iInterval(self.__lower_bound, other_interval.__upper_bound))
 			
-			other_contains_self_upper_bound = other.contains_upper_bound(self.__upper_bound)
+			other_contains_self_upper_bound = other_interval.contains_upper_bound(self.__upper_bound)
 			
 			#   self:        ╠════╣
 			#  other:  ╠════════════╣
@@ -311,12 +273,16 @@ class iInterval:
 			#  other:        ╠════════════╣
 			# result:        ╠══════╣
 			if other_contains_self_upper_bound:
-				result.extend(iInterval(other.__lower_bound, self.__upper_bound))
-		return resolve_iterable_of_iInterval_to_type(result)
+				result.extend(iInterval(other_interval.__lower_bound, self.__upper_bound))
+		return tuple(result)
 	
-	def subtract(self, other: Union[iInterval, iMulti_iInterval]):
-		result = (item for item in itertools.chain(*[exterior.intersect(self) for exterior in other.exterior]))
-		return resolve_iterable_of_iInterval_to_type((*result,))
+	def subtract(self, other: Iterable[iInterval]) -> Tuple[iInterval, ...]:
+		# TODO: this looks cool but its wrong. Needs to do recursive call untill both arguments are len() 1
+		return tuple(
+			item for item in itertools.chain(*[
+				(each_exterior.intersect(self) for each_exterior in other_interval_exterior)
+					for other_interval_exterior in
+						(other_interval.exterior for other_interval in other)]) if len(item) > 0)
 	
 	def hull(self, other: Union[iInterval, iMulti_iInterval]) -> iInterval:
 		

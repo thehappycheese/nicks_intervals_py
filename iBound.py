@@ -13,8 +13,16 @@ class iBound(float):
 		:param part_of_left: The direction of the bound. If True, this bound is part of the interval to the left of this bound (ie. if used as a lower bound, it means that the value of this bound is excluded from the interval; and if used as an upper bound it is included in the interval). If false, the opposite applies. It is recommended that the PART_OF_LEFT and PART_OF_RIGHT constants are imported from this module to make your code easier to read.
 		"""
 		self.__part_of_left = part_of_left
+		
+		if not(isinstance(value, float) or isinstance(value, int)):
+			raise TypeError(f"Unexpected argument type iBound(value=float,...) where value='{value}'")
+		
+		if not isinstance(part_of_left, bool):
+			raise TypeError(f"Unexpected argument type iBound(...,part_of_left=bool) where part_of_left='{part_of_left}'")
+		
 		if self == float("-inf") and self.part_of_left:
 			raise Exception("Bounds at -inf must be included_in_right")
+		
 		elif self == float("inf") and self.part_of_right:
 			raise Exception("Bounds at inf must be included_in_left")
 	

@@ -1,15 +1,7 @@
-import os
-import sys
 import pytest
 
-#print(os.path.join(os.getcwd(), "\\"))
-#sys.path.insert(len(sys.path), os.path.join(os.getcwd(), "\\"))
-
-from NicksIntervals.iInterval import iInterval
 from NicksIntervals.iBound import iBound, PART_OF_LEFT, PART_OF_RIGHT
-
-
-
+from NicksIntervals.iInterval import iInterval
 
 
 def test_iInterval_contains_value():
@@ -69,8 +61,6 @@ def test_iInterval_contains_bound():
 
 def test_iInterval_contains_interval():
 	
-	# TODO: test some edge cases with open and closed ends.
-	
 	a = 40.0
 	b = 60.0
 	
@@ -94,3 +84,14 @@ def test_iInterval_contains_interval():
 	both_bounds_closed(1.0e-7)
 	with pytest.raises(AssertionError):
 		both_bounds_closed(1.0e-8)
+		
+	# we will just do some sample cases with open closed ends #TODO: can we make this an exhaustive test?
+	assert iInterval.open(1, 2).contains_interval(iInterval.open(1, 2)) is True
+	assert iInterval.open_closed(1, 2).contains_interval(iInterval.open_closed(1, 2)) is True
+	assert iInterval.closed_open(1, 2).contains_interval(iInterval.closed_open(1, 2)) is True
+	
+	assert iInterval.open(1, 2).contains_interval(iInterval.closed(1, 1.5)) is False
+	assert iInterval.open(1, 2).contains_interval(iInterval.closed(1.5, 2)) is False
+	
+	assert iInterval.closed(1, 2).contains_interval(iInterval.open(1, 1.5)) is True
+	assert iInterval.closed(1, 2).contains_interval(iInterval.open(1.5, 2)) is True
