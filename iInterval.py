@@ -14,7 +14,7 @@ from typing import List, Any, Iterable
 from typing import Tuple
 from typing import Union
 
-from .iBound import iBound
+from .iBound import iBound, PART_OF_LEFT, PART_OF_RIGHT, iBound_Negative_Infinity, iBound_Positive_Infinity
 from .iMulti_iInterval import iMulti_iInterval
 
 Infinity = float('inf')
@@ -30,8 +30,8 @@ class iInterval:
 		#  or be equal to the value of this object by overriding the __eq__?
 		#  >>> some_iInterval == iInterval.complete()
 		return iInterval(
-			lower_bound=iBound(Infinity, False),
-			upper_bound=iBound(-Infinity, True)
+			lower_bound=iBound_Positive_Infinity,
+			upper_bound=iBound_Negative_Infinity
 		)
 	
 	@classmethod
@@ -46,8 +46,8 @@ class iInterval:
 		
 		# TODO:write some tests to see if it actually works.
 		return iInterval(
-			lower_bound=iBound(value, False),
-			upper_bound=iBound(value, True)
+			lower_bound=iBound(value, PART_OF_RIGHT),
+			upper_bound=iBound(value, PART_OF_LEFT)
 		)
 	
 	@classmethod

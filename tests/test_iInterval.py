@@ -8,9 +8,9 @@ from NicksIntervals.iInterval import iInterval
 
 
 def test_iInterval_init_argtype():
-	with pytest.raises(ValueError):
+	with pytest.raises(TypeError):
 		iInterval.closed(1, 'a')
-	with pytest.raises(ValueError):
+	with pytest.raises(TypeError):
 		iInterval.closed(1, 'a')
 	with pytest.raises(TypeError):
 		iInterval(1.0, 2)
