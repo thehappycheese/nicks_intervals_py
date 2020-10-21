@@ -30,17 +30,29 @@ class iBound:
 		elif self == float("inf") and self.part_of_right:
 			raise Exception("Bounds at inf must be included_in_left")
 	
-	def __float__(self):
-		return self.__value
-	
 	def __eq__(self, other):
-		return self.__value == other
+		if isinstance(other, (float, int)):
+			return self.__value == other
+		elif isinstance(other, iBound):
+			return math.isclose(self.__value, other.__value) and self.__part_of_left == other.__part_of_left
 	
 	def __gt__(self, other):
-		return self.__value > other
-	
+		if isinstance(other, (float, int)):
+			return self.__value > other
+		elif isinstance(other, iBound):
+			if math.isclose(self.__value, other.__value):
+				return self.part_of_left and other.part_of_right
+			else:
+				return self.__value > other.__value
+		
 	def __lt__(self, other):
-		return self.__value < other
+		if isinstance(other, (float, int)):
+			return self.__value < other
+		elif isinstance(other, iBound):
+			if math.isclose(self.__value, other.__value):
+				return self.part_of_right and other.part_of_left
+			else:
+				return self.__value < other.__value
 	
 	@property
 	def value(self):

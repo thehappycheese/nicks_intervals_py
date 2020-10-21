@@ -1,6 +1,3 @@
-import os
-import sys
-
 import pytest
 
 from NicksIntervals.iBound import iBound, PART_OF_LEFT, PART_OF_RIGHT
@@ -28,12 +25,13 @@ def test_iInterval_init_reversed_not_permitted():
 def test_iInterval_init_degenerate_must_be_closed():
 	# degenerate intervals may not have any open bounds
 	with pytest.raises(Exception):
-		iInterval(iBound(0, True), iBound(0, True))
+		iInterval(iBound(0, PART_OF_LEFT), iBound(0, PART_OF_LEFT))
 	with pytest.raises(Exception):
-		iInterval(iBound(0, True), iBound(0, False))
+		iInterval(iBound(0, PART_OF_LEFT), iBound(0, PART_OF_RIGHT))
 	with pytest.raises(Exception):
-		iInterval(iBound(0, False), iBound(0, False))
-	iInterval(iBound(0, False), iBound(0, True))
+		iInterval(iBound(0, PART_OF_RIGHT), iBound(0, PART_OF_RIGHT))
+		
+	iInterval(iBound(0, PART_OF_RIGHT), iBound(0, PART_OF_LEFT))
 
 
 def test_iInterval_init_infinitesimal():

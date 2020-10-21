@@ -8,16 +8,19 @@ Also I am using this to process midi files.
 
 from __future__ import annotations
 
-import math
 import itertools
-from typing import List, Any, Iterable
+import math
+from typing import Iterable
 from typing import Tuple
 from typing import Union
 
-from .iBound import iBound, PART_OF_LEFT, PART_OF_RIGHT, iBound_Negative_Infinity, iBound_Positive_Infinity
+from .iBound import PART_OF_LEFT
+from .iBound import PART_OF_RIGHT
+from .iBound import iBound
+from .iBound import iBound_Negative_Infinity
+from .iBound import iBound_Positive_Infinity
 from .iMulti_iInterval import iMulti_iInterval
 
-Infinity = float('inf')
 
 class iInterval:
 	"""Immutable Interval based on python's built in floats. Nothing fancy."""
@@ -52,25 +55,25 @@ class iInterval:
 	
 	@classmethod
 	def closed(cls, lower_bound: float, upper_bound: float):
-		return iInterval(iBound(lower_bound, False), iBound(upper_bound, True))
+		return iInterval(iBound(lower_bound, PART_OF_RIGHT), iBound(upper_bound, PART_OF_LEFT))
 	
 	@classmethod
 	def open(cls, lower_bound: float, upper_bound: float):
-		return iInterval(iBound(lower_bound, True), iBound(upper_bound, False))
+		return iInterval(iBound(lower_bound, PART_OF_LEFT), iBound(upper_bound, PART_OF_RIGHT))
 	
 	@classmethod
 	def open_closed(cls, lower_bound: float, upper_bound: float):
-		return iInterval(iBound(lower_bound, True), iBound(upper_bound, True))
+		return iInterval(iBound(lower_bound, PART_OF_LEFT), iBound(upper_bound, PART_OF_LEFT))
 	
 	@classmethod
 	def closed_open(cls, lower_bound: float, upper_bound: float):
-		return iInterval(iBound(lower_bound, False), iBound(upper_bound, False))
+		return iInterval(iBound(lower_bound, PART_OF_RIGHT), iBound(upper_bound, PART_OF_RIGHT))
 	
 	def __init__(self, lower_bound: iBound, upper_bound: iBound):
 		try:
 			assert isinstance(lower_bound, iBound)
 			assert isinstance(upper_bound, iBound)
-		except AssertionError as e:
+		except AssertionError:
 			raise TypeError("Bounds must be an instance of iBound")
 		
 		self.__lower_bound: iBound = lower_bound
@@ -79,28 +82,28 @@ class iInterval:
 		self.__is_infinitesimal: bool = False
 		self.__is_degenerate: bool = False
 		
-		if lower_bound == upper_bound:
+		if lower_bound.value == upper_bound.value:
 			if self.__lower_bound.part_of_right and self.__upper_bound.part_of_left:
 				self.__is_degenerate = True
 			else:
 				raise Exception(f"Degenerate intervals (lower_bound==upper_bound) are only permitted when both bounds are closed.")
-		elif math.isclose(lower_bound, upper_bound):
+		elif math.isclose(lower_bound.value, upper_bound.value):
 			self.__is_infinitesimal = True
 			# TODO: emit warning? infinitesimal intervals will cause havoc with other algorithms
 			#  im really on the fence about this one. i think i need to do more research about precision models
 			#  ima raise an exception here until i have a better idea.
 			raise Exception(f"Infinitesimal intervals are not cool: {lower_bound} <= {upper_bound} == {lower_bound<=upper_bound}")
-		elif lower_bound > upper_bound:
-			raise Exception(f"reversed intervals are not permitted. lower_bound must be less than or equal to upper_bound: {lower_bound} <= {upper_bound} == {lower_bound<=upper_bound}")
+		elif lower_bound.value > upper_bound.value:
+			raise Exception(f"reversed intervals are not permitted. lower_bound.value must be less than or equal to upper_bound.value: {lower_bound} <= {upper_bound} == {lower_bound.value<=upper_bound.value}")
 		
 	def __format__(self, format_spec):
-		char_left = f"{format(float(self.__lower_bound), format_spec)}"
-		char_right = f"{format(float(self.__upper_bound), format_spec)}"
+		char_left = f"{format(float(self.__lower_bound.value), format_spec)}"
+		char_right = f"{format(float(self.__upper_bound.value), format_spec)}"
 		
-		if self.__lower_bound == -Infinity:
+		if self.__lower_bound == iBound_Negative_Infinity:
 			char_left = "-∞"
 		
-		if self.__upper_bound == Infinity:
+		if self.__upper_bound == iBound_Positive_Infinity:
 			char_right = "+∞"
 		
 		if self.__lower_bound.part_of_right:
@@ -127,17 +130,17 @@ class iInterval:
 			╠═════╣    ╞═══╣
 		"""
 		out = f"{self:2.0f} :"
-		for i in range(0, int(min(50, round(self.__upper_bound))) + 1):
-			if i < round(self.__lower_bound):
+		for i in range(0, int(min(50, round(self.__upper_bound.value))) + 1):
+			if i < round(self.__lower_bound.value):
 				out += " "
-			elif round(self.__lower_bound) == i == round(self.__upper_bound):
+			elif round(self.__lower_bound.value) == i == round(self.__upper_bound.value):
 				out += "║"
-			elif i == round(self.__lower_bound):
+			elif i == round(self.__lower_bound.value):
 				if self.__lower_bound.part_of_right:
 					out += "╠"
 				else:
 					out += "╞"
-			elif i == round(self.__upper_bound):
+			elif i == round(self.__upper_bound.value):
 				if self.__upper_bound.part_of_left:
 					out += "╣"
 				else:
@@ -165,66 +168,66 @@ class iInterval:
 	
 	@ property
 	def length(self) -> float:
-		return self.__upper_bound - self.__lower_bound
+		return self.__upper_bound.value - self.__lower_bound.value
 	
 	def interpolate(self, ratio: float) -> float:
-		return self.__lower_bound + (self.__upper_bound - self.__lower_bound) * ratio
+		return self.__lower_bound.value + (self.__upper_bound.value - self.__lower_bound.value) * ratio
 	
 	def contains_value(self, value: float) -> bool:
 		if self.__is_degenerate:
-			return math.isclose(self.__lower_bound, value)
+			return math.isclose(self.__lower_bound.value, value)
 		else:
-			if math.isclose(self.__lower_bound, value) and self.__lower_bound.part_of_right:
+			if math.isclose(self.__lower_bound.value, value) and self.__lower_bound.part_of_right:
 				return True
-			elif math.isclose(self.__upper_bound, value) and self.__upper_bound.part_of_left:
+			elif math.isclose(self.__upper_bound.value, value) and self.__upper_bound.part_of_left:
 				return True
 			elif self.__lower_bound < value < self.__upper_bound:
 				return True
 		return False
 	
 	def contains_upper_bound(self, bound: iBound) -> bool:
-		if self.__is_degenerate and math.isclose(self.__lower_bound, bound):
+		if self.__is_degenerate and math.isclose(self.__lower_bound.value, bound.value):
 			return bound.part_of_left
 		else:
-			if math.isclose(self.__lower_bound, bound):
+			if math.isclose(self.__lower_bound.value, bound.value):
 				return self.__lower_bound.part_of_right and bound.part_of_left
-			if math.isclose(self.__upper_bound, bound):
+			if math.isclose(self.__upper_bound.value, bound.value):
 				return not (self.__upper_bound.part_of_right and bound.part_of_left)
 			elif self.__lower_bound < bound < self.__upper_bound:
 				return True
 		return False
 	
 	def contains_lower_bound(self, bound: iBound) -> bool:
-		if self.__is_degenerate and math.isclose(self.__upper_bound, bound):
+		if self.__is_degenerate and math.isclose(self.__upper_bound.value, bound.value):
 			return bound.part_of_right
 		else:
-			if math.isclose(self.__lower_bound, bound):
+			if math.isclose(self.__lower_bound.value, bound.value):
 				return not (self.__lower_bound.part_of_left and bound.part_of_right)
-			if math.isclose(self.__upper_bound, bound):
+			if math.isclose(self.__upper_bound.value, bound.value):
 				return self.__upper_bound.part_of_left and bound.part_of_right
 			if self.__lower_bound < bound < self.__upper_bound:
 				return True
 		return False
 		
 	def contains_interval(self, other: iInterval) -> bool:
-		if self.__is_degenerate and other.__is_degenerate and math.isclose(self.__lower_bound, other.__lower_bound):
+		if self.__is_degenerate and other.__is_degenerate and math.isclose(self.__lower_bound.value, other.__lower_bound.value):
 			return True
 		else:
 			return self.contains_lower_bound(other.__lower_bound) and self.contains_upper_bound(other.__upper_bound)
 	
 	@property
 	def left_exterior(self) -> Tuple[iInterval, ...]:
-		if self.__lower_bound == -Infinity:
+		if self.__lower_bound == iBound_Negative_Infinity:
 			return tuple()
 		else:
-			return (iInterval(iBound(-Infinity, False), self.__lower_bound), )
+			return (iInterval(iBound_Negative_Infinity, self.__lower_bound), )
 	
 	@property
 	def right_exterior(self) -> Union[Tuple[()], Tuple[iInterval]]:
-		if self.__upper_bound == Infinity:
+		if self.__upper_bound == iBound_Positive_Infinity:
 			return tuple()
 		else:
-			return (iInterval(self.__upper_bound, iBound(Infinity, True)), )
+			return (iInterval(self.__upper_bound, iBound_Positive_Infinity), )
 		
 	@property
 	def exterior(self) -> Union[Tuple[()], Tuple[iInterval], Tuple[iInterval, iInterval]]:
@@ -277,7 +280,7 @@ class iInterval:
 		return tuple(result)
 	
 	def subtract(self, other: Iterable[iInterval]) -> Tuple[iInterval, ...]:
-		result = self
+		
 		# TODO: This works. But can it be even more slick...
 		# result = self
 		# for other_sub_interval in other:
@@ -298,28 +301,15 @@ class iInterval:
 			)
 		return tuple(result)
 	
-	def hull(self, other: Union[iInterval, iMulti_iInterval]) -> iInterval:
-		
-		lowest_most_closed_bound = self.__lower_bound
-		if math.isclose(other.lower_bound, self.__lower_bound):
-			if other.lower_bound.closed and self.__lower_bound.open:
-				lowest_most_closed_bound = other.lower_bound
-		elif other.lower_bound < self.__lower_bound:
-			lowest_most_closed_bound = other.lower_bound
-		else:
-			pass  # already correct
-		
-		highest_most_closed_bound = self.__upper_bound
-		if math.isclose(other.upper_bound, self.__upper_bound):
-			if other.upper_bound.closed and self.__upper_bound.open:
-				highest_most_closed_bound = other.upper_bound
-		elif other.upper_bound > self.__upper_bound:
-			highest_most_closed_bound = other.upper_bound
-		else:
-			pass  # already correct
-		
-		return iInterval(lowest_most_closed_bound, highest_most_closed_bound)
+	def hull(self, other: Iterable[iInterval]) -> Iterable[iInterval]:
+		result_lower_bound = self.__lower_bound
+		result_upper_bound = self.__upper_bound
+		for other_interval in other:
+			if other_interval.__lower_bound < result_lower_bound:
+				result_lower_bound = other_interval.__lower_bound
+			if other_interval.__lower_bound > result_upper_bound:
+				result_upper_bound = other_interval.__upper_bound
+		return iInterval(result_lower_bound, result_upper_bound)
 	
-	def union(self, other: Union[iInterval, iMulti_iInterval]):
-		# th union of an overlapping multi-interval is ... wierd
-		resolve_iterable_of_iInterval_to_type((self, *other))
+	def union(self, other: Iterable[iInterval]) -> Iterable[iInterval]:
+		return tuple(itertools.chain(self, other))
