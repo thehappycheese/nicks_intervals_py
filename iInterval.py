@@ -277,12 +277,26 @@ class iInterval:
 		return tuple(result)
 	
 	def subtract(self, other: Iterable[iInterval]) -> Tuple[iInterval, ...]:
-		# TODO: this looks cool but its wrong. Needs to do recursive call untill both arguments are len() 1
-		return tuple(
-			item for item in itertools.chain(*[
-				(each_exterior.intersect(self) for each_exterior in other_interval_exterior)
-					for other_interval_exterior in
-						(other_interval.exterior for other_interval in other)]) if len(item) > 0)
+		result = self
+		# TODO: This works. But can it be even more slick...
+		# result = self
+		# for other_sub_interval in other:
+		# 	p1 = []
+		# 	for self_sub_interval in result:
+		# 		p1.extend(itertools.chain(*(exterior.intersect(self_sub_interval) for exterior in other_sub_interval.exterior)))
+		# 	result = tuple(p1)
+		# return result
+		
+		result = self
+		for other_sub_interval in other:
+			result = (
+				itertools.chain(*(
+					itertools.chain(*(
+						exterior.intersect(self_sub_interval) for exterior in other_sub_interval.exterior
+					)) for self_sub_interval in result
+				))
+			)
+		return tuple(result)
 	
 	def hull(self, other: Union[iInterval, iMulti_iInterval]) -> iInterval:
 		
