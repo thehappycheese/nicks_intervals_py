@@ -27,11 +27,6 @@ class iInterval:
 	
 	@classmethod
 	def complete(cls):
-		# TODO: there may be issues with comparison to the instance returned by this method.
-		#  Do we expect all complete intervals to be equivalent to this object
-		#  >>> some_iInterval is iInterval.complete())
-		#  or be equal to the value of this object by overriding the __eq__?
-		#  >>> some_iInterval == iInterval.complete()
 		return iInterval(
 			lower_bound=iBound_Positive_Infinity,
 			upper_bound=iBound_Negative_Infinity
@@ -39,15 +34,6 @@ class iInterval:
 	
 	@classmethod
 	def degenerate(cls, value: float = 0.0):
-		# TODO: i am not sure these are needed in practice. If they can be eliminated that would be good.
-		#  Degenerate intervals are the same as a float.
-		#  They are not like a iBound which must be interpreted as upper or lower to truly make comparisons with them.
-		#  They are a double closed bound and are useless.
-		#  in writing this comment, I am now wondering if iBounds should have a __closed_left and __closed_right property.
-		#  this might  allow us to crunch down some of the algorithms here.
-		#  bound could implement a 'contains' function to simplify some of the nightmarish math.isclose() logic in iInterval.
-		
-		# TODO:write some tests to see if it actually works.
 		return iInterval(
 			lower_bound=iBound(value, PART_OF_RIGHT),
 			upper_bound=iBound(value, PART_OF_LEFT)
@@ -81,6 +67,7 @@ class iInterval:
 		
 		self.__is_infinitesimal: bool = False
 		self.__is_degenerate: bool = False
+		self.__is_complete = lower_bound.value == float('-inf') and upper_bound.value == float('inf')
 		
 		if lower_bound.value == upper_bound.value:
 			if self.__lower_bound.part_of_right and self.__upper_bound.part_of_left:
@@ -95,6 +82,8 @@ class iInterval:
 			raise Exception(f"Infinitesimal intervals are not cool: {lower_bound} <= {upper_bound} == {lower_bound<=upper_bound}")
 		elif lower_bound.value > upper_bound.value:
 			raise Exception(f"reversed intervals are not permitted. lower_bound.value must be less than or equal to upper_bound.value: {lower_bound} <= {upper_bound} == {lower_bound.value<=upper_bound.value}")
+		
+		
 		
 	def __format__(self, format_spec):
 		char_left = f"{format(float(self.__lower_bound.value), format_spec)}"
@@ -166,6 +155,10 @@ class iInterval:
 	def is_infinitesimal(self) -> bool:
 		return self.__is_infinitesimal
 	
+	@property
+	def is_complete(self) -> bool:
+		return self.__is_complete
+	
 	@ property
 	def length(self) -> float:
 		return self.__upper_bound.value - self.__lower_bound.value
@@ -233,6 +226,14 @@ class iInterval:
 	def exterior(self) -> Union[Tuple[()], Tuple[iInterval], Tuple[iInterval, iInterval]]:
 		return (*self.left_exterior, *self.right_exterior)
 	
+	def touches(self, other: Iterable[iInterval]) -> bool:
+		for other_interval in other:
+			if math.isclose(self.__lower_bound.value, other_interval.__upper_bound.value) and (self.__lower_bound.part_of_right == other_interval.__upper_bound.part_of_right):
+				return True
+			if math.isclose(self.__upper_bound.value, other_interval.__lower_bound.value) and (self.__upper_bound.part_of_left == other_interval.__lower_bound.part_of_left):
+				return True
+		return False
+	
 	def intersects(self, other: Iterable[iInterval]) -> bool:
 		for other_interval in other:
 			if (
@@ -244,7 +245,7 @@ class iInterval:
 				return True
 		return False
 	
-	def intersect(self, other: Iterable[iInterval]):
+	def intersect(self, other: Iterable[iInterval]) -> Iterable[iInterval]:
 		result = []
 		for other_interval in other:
 			self_contains_other_lower_bound = self.contains_lower_bound(other_interval.__lower_bound)
@@ -279,7 +280,7 @@ class iInterval:
 				result.extend(iInterval(other_interval.__lower_bound, self.__upper_bound))
 		return tuple(result)
 	
-	def subtract(self, other: Iterable[iInterval]) -> Tuple[iInterval, ...]:
+	def subtract(self, other: Iterable[iInterval]) -> Iterable[iInterval]:
 		
 		# TODO: This works. But can it be even more slick...
 		# result = self

@@ -3,20 +3,33 @@ from __future__ import annotations
 from typing import Tuple, Iterator, Union, Iterable, TYPE_CHECKING
 
 
-from .iBound import iBound
+from .iBound import iBound, iBound_Positive_Infinity, iBound_Negative_Infinity
 
 if TYPE_CHECKING:
 	from .iInterval import iInterval
 
-Infinity = float("inf")  # TODO: this is declared in iInterval as well. is there a better way tto do this?
-
 
 class iMulti_iInterval:
 	def __init__(self, iter_intervals: Iterable[iInterval]):
-		self.__intervals: Tuple[iInterval] = (*sorted(iter_intervals, key=lambda item: item.lower_bound),)
+		self.__lower_bound: iBound = iBound_Positive_Infinity
+		self.__upper_bound: iBound = iBound_Negative_Infinity
+		self.__intervals: Tuple[iInterval] = tuple(sorted(iter_intervals, key=lambda item: item.lower_bound))
+		self.__is_empty = False
+		if len(self.__intervals) == 0:
+			self.__is_empty = True
+		else:
+			for interval in self.__intervals:
+				if interval.lower_bound < self.__lower_bound:
+					self.__lower_bound = interval.lower_bound
+				if interval.upper_bound > self.__upper_bound:
+					self.__upper_bound = interval.upper_bound
 		
 	@property
-	def intervals(self):
+	def is_empty(self):
+		return self.__is_empty
+	
+	@property
+	def intervals(self) -> Iterable[iInterval]:
 		return self.__intervals
 	
 	def __iter__(self) -> Iterator[iInterval]:
@@ -40,12 +53,15 @@ class iMulti_iInterval:
 	
 	@property
 	def upper_bound(self) -> iBound:
-		return max(interval.upper_bound for interval in self.__intervals)  # Note: this relies on behaviour of max function to return custom float type.
+		return self.__upper_bound
 	
 	@property
 	def lower_bound(self) -> iBound:
-		return min(interval.lower_bound for interval in self.__intervals)
+		return self.__lower_bound
 	
+	def flatten(self):
+		out = [self.lower_bound]
+		
 	@property
 	def exterior(self) -> iMulti_iInterval:
 		# obtain non-overlapping mult-interval from this multi interval.
@@ -53,9 +69,6 @@ class iMulti_iInterval:
 		# or a line sweep algorithim
 		
 		pass
-		
-		
-	
 	
 	def subtract(self, interval_to_subtract: iInterval):
 		new_interval_list = []
