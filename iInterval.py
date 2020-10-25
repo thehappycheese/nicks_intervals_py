@@ -19,7 +19,49 @@ from .iBound import PART_OF_RIGHT
 from .iBound import iBound
 from .iBound import iBound_Negative_Infinity
 from .iBound import iBound_Positive_Infinity
-from .iMulti_iInterval import iMulti_iInterval
+
+
+class Linked_iBound(iBound):
+	def __init__(self, interval: iInterval, bound:iBound):
+		"""
+		This class allows intervals to be decomposed into bounds without forgetting weather the bound was an upper or lower bound.
+		it should not be instantiated directly, but obtained through an instance of iInterval by calling
+		>>>iInterval(...).get_connected_bounds()
+		"""
+		super().__init__(bound.value, bound.part_of_left)
+		self.__interval = interval
+		self.__bound = bound
+		self.__is_lower_bound:bool
+		if interval.lower_bound is bound:
+			self.__is_lower_bound = True
+		elif interval.upper_bound is bound:
+			self.__is_lower_bound = False
+		else:
+			raise Exception("bound must be part of the interval")
+	
+	def __format__(self, format_spec):
+		lower_or_upper_bound_string = "Lower"
+		if self.is_upper_bound:
+			lower_or_upper_bound_string = "Upper"
+		return f"Linked_{super().__format__(format_spec)[:-1]},{lower_or_upper_bound_string})"
+	
+	@property
+	def interval(self):
+		"""a reference back to the interval which created this connected_iBound"""
+		return self.__interval
+	
+	@property
+	def bound(self):
+		"""a reference back to the original immutable iBound object which the interval uses"""
+		return self.__bound
+	
+	@property
+	def is_lower_bound(self):
+		return self.__is_lower_bound
+	
+	@property
+	def is_upper_bound(self):
+		return not self.__is_lower_bound
 
 
 class iInterval:
@@ -83,8 +125,6 @@ class iInterval:
 		elif lower_bound.value > upper_bound.value:
 			raise Exception(f"reversed intervals are not permitted. lower_bound.value must be less than or equal to upper_bound.value: {lower_bound} <= {upper_bound} == {lower_bound.value<=upper_bound.value}")
 		
-		
-		
 	def __format__(self, format_spec):
 		char_left = f"{format(float(self.__lower_bound.value), format_spec)}"
 		char_right = f"{format(float(self.__upper_bound.value), format_spec)}"
@@ -146,6 +186,12 @@ class iInterval:
 	@property
 	def upper_bound(self) -> iBound:
 		return self.__upper_bound
+	
+	def get_connected_bounds(self) -> Tuple[Linked_iBound, Linked_iBound]:
+		return (
+			Linked_iBound(self, self.__lower_bound),
+			Linked_iBound(self, self.__upper_bound)
+		)
 	
 	@property
 	def is_degenerate(self) -> bool:

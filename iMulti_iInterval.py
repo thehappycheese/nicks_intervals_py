@@ -1,12 +1,21 @@
 from __future__ import annotations
 
-from typing import Tuple, Iterator, Union, Iterable, TYPE_CHECKING
+import itertools
+from typing import Iterable
+from typing import Iterator
+from typing import List
+from typing import TYPE_CHECKING
+from typing import Tuple
+from typing import Union
+
+from .iBound import iBound
+from .iBound import iBound_Negative_Infinity
+from .iBound import iBound_Positive_Infinity
+from .iInterval import iInterval
+#if TYPE_CHECKING:
+from .iInterval import Linked_iBound
 
 
-from .iBound import iBound, iBound_Positive_Infinity, iBound_Negative_Infinity
-
-if TYPE_CHECKING:
-	from .iInterval import iInterval
 
 
 class iMulti_iInterval:
@@ -59,16 +68,45 @@ class iMulti_iInterval:
 	def lower_bound(self) -> iBound:
 		return self.__lower_bound
 	
-	def flatten(self):
-		out = [self.lower_bound]
-		
+	def get_exterior_connected_bounds(self) -> List[Linked_iBound]:
+		stack_count = 0
+		item: Linked_iBound
+		out = []
+		for item in sorted(itertools.chain(*(interval.get_connected_bounds() for interval in self.__intervals))):
+			if item.is_lower_bound:
+				if stack_count == 0:
+					out.append(item)
+				stack_count += 1
+			else:
+				stack_count -= 1
+				if stack_count == 0:
+					out.append(item)
+		return out
+	
+	def get_exterior_bounds(self) -> List[iBound]:
+		stack_count = 0
+		item: Linked_iBound
+		out = []
+		for item in sorted(itertools.chain(*(interval.get_connected_bounds() for interval in self.__intervals))):
+			if item.is_lower_bound:
+				if stack_count == 0:
+					out.append(item.bound)
+				stack_count += 1
+			else:
+				stack_count -= 1
+				if stack_count == 0:
+					out.append(item.bound)
+		return out
+	
 	@property
-	def exterior(self) -> iMulti_iInterval:
-		# obtain non-overlapping mult-interval from this multi interval.
-		# this requires the implimentation of a union function on iInterval and on Multi Interval.
-		# or a line sweep algorithim
+	def exterior(self) -> Iterable[iInterval]:
+		eb = self.get_exterior_bounds()
+		if eb[0] != iBound_Negative_Infinity:
+			eb = [iBound_Negative_Infinity]+eb
+		if eb[-1] != iBound_Positive_Infinity:
+			eb = eb+[iBound_Positive_Infinity]
+		return tuple(iInterval(a, b) for a, b in zip(*([iter(eb)]*2)))
 		
-		pass
 	
 	def subtract(self, interval_to_subtract: iInterval):
 		new_interval_list = []
