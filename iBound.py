@@ -75,7 +75,7 @@ class iBound:
 		arrow = "🡆"
 		if self.part_of_left:
 			arrow = "🡄"
-		return "iBound("+(f"{{:{format_spec}}}").format(self.__value)+","+arrow+")"
+		return "iBound(" + ( f"{{:{format_spec}}}" ).format(self.__value) + "," + arrow + ")"
 	
 	def __repr__(self):
 		return format(self, ".2f")

@@ -4,18 +4,50 @@ import itertools
 from typing import Iterable
 from typing import Iterator
 from typing import List
-from typing import TYPE_CHECKING
 from typing import Tuple
 from typing import Union
 
 from .iBound import iBound
 from .iBound import iBound_Negative_Infinity
 from .iBound import iBound_Positive_Infinity
+
 from .iInterval import iInterval
-#if TYPE_CHECKING:
-from .iInterval import Linked_iBound
+from .Linked_iBound import Linked_iBound
 
 
+def with_infinities(iter_bounds: Iterable[iBound]) -> Iterable[Tuple[iBound, bool]]:
+	""" returns an iterator yielding a tuple; the first parameter is the bound, the second parameter indicates if the bound was NOT added by this function (ie came from the original iterator)
+	"""
+	count = 0
+	first = False
+	last_bound = None
+	for bound in iter_bounds:
+		count += 1
+		if first:
+			first = False
+			if bound != iBound_Negative_Infinity:
+				yield iBound_Negative_Infinity, False
+		yield bound, True
+		last_bound = bound
+	if last_bound != iBound_Positive_Infinity:
+		yield iBound_Positive_Infinity, False
+	
+
+def without_duplicated_bounds(iter_bounds: Iterable[iBound]):
+	count = 0
+	first = False
+	last_bound = None
+	for bound in iter_bounds:
+		count += 1
+		if first:
+			first = False
+		else:
+			if last_bound != bound:
+				yield last_bound
+				yield bound
+		last_bound = bound
+	if count == 1:
+		yield last_bound
 
 
 class iMulti_iInterval:
@@ -50,6 +82,8 @@ class iMulti_iInterval:
 	def __repr__(self):
 		return self.__format__(".2f")
 	
+	 
+	
 	def print(self):
 		print("Multi_Interval:")
 		for sub_interval in self.__intervals:
@@ -68,7 +102,7 @@ class iMulti_iInterval:
 	def lower_bound(self) -> iBound:
 		return self.__lower_bound
 	
-	def get_exterior_connected_bounds(self) -> List[Linked_iBound]:
+	def get_exterior_linked_bounds(self) -> Iterable[Linked_iBound]:
 		stack_count = 0
 		item: Linked_iBound
 		out = []
@@ -83,30 +117,17 @@ class iMulti_iInterval:
 					out.append(item)
 		return out
 	
-	def get_exterior_bounds(self) -> List[iBound]:
-		stack_count = 0
-		item: Linked_iBound
-		out = []
-		for item in sorted(itertools.chain(*(interval.get_connected_bounds() for interval in self.__intervals))):
-			if item.is_lower_bound:
-				if stack_count == 0:
-					out.append(item.bound)
-				stack_count += 1
-			else:
-				stack_count -= 1
-				if stack_count == 0:
-					out.append(item.bound)
-		return out
+	def get_exterior_bounds(self) -> Iterable[iBound]:
+		return [linked_bound.bound for linked_bound in self.get_exterior_linked_bounds()]
 	
 	@property
 	def exterior(self) -> Iterable[iInterval]:
-		eb = self.get_exterior_bounds()
-		if eb[0] != iBound_Negative_Infinity:
-			eb = [iBound_Negative_Infinity]+eb
-		if eb[-1] != iBound_Positive_Infinity:
-			eb = eb+[iBound_Positive_Infinity]
-		return tuple(iInterval(a, b) for a, b in zip(*([iter(eb)]*2)))
+		return tuple(iInterval(lower_bound, upper_bound) for lower_bound, upper_bound in zip(*([with_infinities(self.get_exterior_bounds())]*2)) if lower_bound != upper_bound)  # TODO: wrong if starts at neg inf
 		
+	@property
+	def interior(self):
+		exterior_bounds = self.get_exterior_bounds()
+		return tuple(iInterval(a, b) for a, b in zip(*([iter(exterior_bounds)] * 2)) if a != b)
 	
 	def subtract(self, interval_to_subtract: iInterval):
 		new_interval_list = []
@@ -125,76 +146,6 @@ class iMulti_iInterval:
 				new_interval_list.append(interval)
 		return iMulti_iInterval(new_interval_list)
 		
-	def add_overlapping(self, interval: Union[iInterval, iMulti_iInterval]) -> iMulti_iInterval:
-		"""Add to multi interval without further processing. Overlapping intervals will be preserved.
-		this is similar to doing: MultiInterval().intervals.append(Interval()) except it also works on Multi_Intervals
-		:return: self
-		"""
-		if isinstance(interval, iInterval):
-			self.__intervals.append(interval)
-		elif isinstance(interval, iMulti_iInterval):
-			self.__intervals.extend(item for item in interval.intervals)
-		else:
-			raise TypeError(f"Could not add_overlapping item ({interval}) of type {type(interval).__qualname__}")
-		return self
-	
-	def add_hard(self, interval_to_add: iInterval) -> Multi_Interval:
-		"""Add to multi interval, truncating or deleting existing intervals to prevent overlaps with the new interval
-		will result in touching intervals being maintained
-		may result in infinitesimal interval being added
-		:return: self
-		"""
-		# TODO: Make multi interval compatible
-		self.subtract(interval_to_add)
-		self.add_overlapping(interval_to_add)
-		return self
-	
-	def add_soft(self, interval_to_add: Interval) -> Multi_Interval:
-		"""Add Interval() to Multi_Interval(), truncating or ignoring the new interval to prevent overlaps with existing intervals
-		will result in touching intervals being maintained
-		may result in infinitesimal interval being added
-		:return: self
-		"""
-		# TODO: Make multi interval compatible
-		for interval in self.__intervals:
-			if interval.intersects(interval_to_add):
-				interval_to_add = interval_to_add.subtract(interval)
-				if interval_to_add is None:
-					break
-		
-		if isinstance(interval_to_add, Multi_Interval):
-			for sub_interval in interval_to_add.__intervals:
-				self.__intervals.append(sub_interval.copy())
-		elif isinstance(interval_to_add, Interval):
-			self.add_overlapping(interval_to_add)
-		elif interval_to_add is None:
-			pass
-		else:
-			raise Exception("add soft failed")
-		
-		return self
-	
-	def add_merge(self, interval_to_add: Interval) -> Multi_Interval:
-		"""Add Interval() to Multi_Interval(), merge with any overlapping or touching intervals to prevent overlaps
-		preserves existing intervals that are touching, only merges existing intervals which touch or intersect with the new interval
-		:return: self
-		"""
-		# TODO: Make multi interval compatible
-		
-		original_interval_to_add = interval_to_add
-		
-		must_restart = True
-		while must_restart:
-			must_restart = False
-			for interval in self.__intervals:
-				if interval.intersects(original_interval_to_add) or interval.touches(original_interval_to_add):
-					interval_to_add = interval_to_add.hull(interval)
-					self.__intervals.remove(interval)
-					must_restart = True
-					break
-		self.__intervals.append(interval_to_add)
-		return self
-	
 	def intersection(self, arg_interval: Union[Interval, Multi_Interval]) -> Multi_Interval:
 		if isinstance(arg_interval, Multi_Interval):
 			result_multi_interval: Multi_Interval = type(self)([])
