@@ -3,7 +3,6 @@ from __future__ import annotations
 import itertools
 from typing import Iterable
 from typing import Iterator
-from typing import List
 from typing import Tuple
 from typing import Union
 
@@ -14,40 +13,59 @@ from .iBound import iBound_Positive_Infinity
 from .iInterval import iInterval
 from .Linked_iBound import Linked_iBound
 
+from itertools import chain, islice, tee
+
+
+# credit to nosklo https://stackoverflow.com/questions/1011938/python-loop-that-also-accesses-previous-and-next-values
+def previous_and_next(some_iterable):
+	previous_items, current_items, next_items = tee(some_iterable, 3)
+	previous_items = chain([None], previous_items)
+	next_items = chain(islice(next_items, 1, None), [None])
+	return zip(previous_items, current_items, next_items)
+
 
 def with_infinities(iter_bounds: Iterable[iBound]) -> Iterable[Tuple[iBound, bool]]:
-	""" returns an iterator yielding a tuple; the first parameter is the bound, the second parameter indicates if the bound was NOT added by this function (ie came from the original iterator)
+	""" returns an iterator yielding a tuple;
+		(
+			the last bound : iBound | None,
+			the current bound : iBound,
+			interior=True or exterior=False : bool
+		)
 	"""
-	count = 0
-	first = False
-	last_bound = None
-	for bound in iter_bounds:
-		count += 1
-		if first:
-			first = False
+	INTERIOR = True
+	EXTERIOR = False
+	current_state = INTERIOR
+	for previous_bound, bound, next_bound in previous_and_next(iter_bounds):
+		if previous_bound is None:
 			if bound != iBound_Negative_Infinity:
-				yield iBound_Negative_Infinity, False
-		yield bound, True
-		last_bound = bound
-	if last_bound != iBound_Positive_Infinity:
-		yield iBound_Positive_Infinity, False
+				yield iBound_Negative_Infinity, bound, EXTERIOR
+				current_state = INTERIOR
+			else:
+				yield iBound_Negative_Infinity, bound, INTERIOR
+				current_state = EXTERIOR
+		if next_bound is None:
+			if bound != iBound_Positive_Infinity:
+				yield bound, iBound_Positive_Infinity, EXTERIOR
+			else:
+				yield bound, iBound_Positive_Infinity, INTERIOR
+		else:
+			yield previous_bound, bound, current_state
+			current_state = not current_state
 	
 
 def without_duplicated_bounds(iter_bounds: Iterable[iBound]):
-	count = 0
-	first = False
-	last_bound = None
-	for bound in iter_bounds:
-		count += 1
-		if first:
-			first = False
+	"""
+	Eliminates interior duplicate bounds
+	"""
+
+	for previous_bound, bound, next_bound in previous_and_next(iter_bounds):
+		if previous_bound is None:
+			yield bound
+		elif next_bound is None:
+			yield bound
 		else:
-			if last_bound != bound:
-				yield last_bound
-				yield bound
-		last_bound = bound
-	if count == 1:
-		yield last_bound
+		
+		
 
 
 class iMulti_iInterval:
@@ -122,7 +140,7 @@ class iMulti_iInterval:
 	
 	@property
 	def exterior(self) -> Iterable[iInterval]:
-		return tuple(iInterval(lower_bound, upper_bound) for lower_bound, upper_bound in zip(*([with_infinities(self.get_exterior_bounds())]*2)) if lower_bound != upper_bound)  # TODO: wrong if starts at neg inf
+		return tuple(iInterval(lower_bound, upper_bound) for lower_bound, upper_bound , interior in zip(*([with_infinities(self.get_exterior_bounds())]*2)) if not interior)  # TODO: wrong if starts at neg inf
 		
 	@property
 	def interior(self):
