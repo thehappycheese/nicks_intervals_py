@@ -145,7 +145,7 @@ class iInterval:
 	def upper_bound(self) -> iBound:
 		return self.__upper_bound
 	
-	def get_connected_bounds(self) -> Tuple[Linked_iBound, Linked_iBound]:
+	def get_linked_bounds(self) -> Tuple[Linked_iBound, Linked_iBound]:
 		return (
 			Linked_iBound(self, self.__lower_bound),
 			Linked_iBound(self, self.__upper_bound)

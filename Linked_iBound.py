@@ -14,7 +14,7 @@ class Linked_iBound(iBound):
 		"""
 		This class allows intervals to be decomposed into bounds without forgetting where the bound came from and if it was and an upper or lower bound.
 		it should not be instantiated directly, but obtained through an instance of iInterval by calling:
-		>>>iInterval(...).get_connected_bounds()
+		>>>iInterval(...).get_linked_bounds()
 		"""
 		super().__init__(bound.value, bound.part_of_left)
 		self.__interval: iInterval = interval
