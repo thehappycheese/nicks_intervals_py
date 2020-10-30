@@ -1,89 +1,73 @@
-# interval-py
+# NicksIntervals
 
 This is a (**Work in progress**) pure python (3.7+) library for manipulating Intervals and Multi-Intervals.
-Many other libraries are out there but, based on my search results:
+Many other libraries are out there but:
  - many do not support modern type hints,
- - overcomplicated (for my purposes),
- - over-abbreviated and unreadable API
- - dependencies galore (on numpy and other libraries)
- - or were harder to learn than it was to write this library ;)
+ - some are overcomplicated (for my purposes),
+ - some have over-abbreviated and unreadable API
+ - some are dependent on numpy and other libraries
+ (id like a complete solution that can be understood by reading one set of documentation)
+ - or were harder to learn, and less fun, than it was to write this library ;)
 
 This one  https://github.com/kvesteri/intervals looks really popular but I have not tried it. You might want to take a look at that first as it appears to have more features and is properly tested.
-It does not seem to proved a Multi_Interval class...
+It does not seem to proved a Multi_Interval class...?
 
 
-In this library, two classes are provided:
-
-`Interval(start: float, end: float)` <br>
-and <br>
-`Multi_Interval([Interval(...), Interval(...)])`
-
-
-## Interval(start: float, end: float)
-
-An Interval is a pair of values representing a start and end on a single dimension.
-
-### Ordering
-An `Interval().is_ordered` when `Interval().start <= Interval().end`.
-
-Un-ordered or 'backwards' intervals are permitted however there are no checks to ensure that functions operate correctly on them.
-Backwards intervals can be useful if treated with caution; 
-`Interval(float('inf'), float('-inf'))`, can be used as as if it was an 'empty set' when using the `Interval(...).hull(Interval())` function to find the outer extent of a set of intervals:
+In this library, three primary classes are provided:
 ```python
-from Interval import Interval
-# Create and interval that extends from positive infinity backwards to negative infinity
-a = Interval(float('inf'), float('-inf'))
-print(a.is_ordered)
-# >>> False
-b = Interval(9, 11)
-c = Interval(10, 15)
-d = a.hull(b).hull(c)
-print(d)
-# >>> Interval(9.00, 15.00)
-```
-This example is kind of pointless however, as you could just as simply do `b.hull(c)`. Perhaps it would be useful in an Array.reduce() as the initial parameter, or when working with other intervals with infinite endpoints.
-
-### Custom Float Class as Start and End Arguments
-Interval can accept any **start** and **end** arguments which behave like floating point numbers.
-For this to work they must implement all of the following functions:
- -  `.__float__()`,
- - `.__lt__(arg: SupportsFloat)`,
- - `__gt__(arg: SupportsFloat)`,
- - `__le__(arg: SupportsFloat)`,
- - `__ge__(arg: SupportsFloat)`,
- - `__eq__(arg: SupportsFloat)`, and
- - `__ne__(arg: SupportsFloat)`
-
-If custom float values are used: the Interval class can *_optionally_* be subclassed as follows to improve type hinting and code completion: 
-```python
-from Interval import Interval
-class Custom_Float:
-    pass # ... implement as described in dot-points above. See the github wiki for practical example
-
-class Custom_Interval(Interval):
-    def __init__(self, start: Custom_Float, end: Custom_Float):
-        # Do not call the super().__init__()
-        # super().__init__(start, end)  # <-- don't do this
-        self.start: Custom_Float = start
-        self.end: Custom_Float = end
+from NicksIntervals.iBound import iBound, PART_OF_LEFT, PART_OF_RIGHT
+from NicksIntervals.iInterval import iInterval
+from NicksIntervals.iMulti_iInterval import iMulti_iInterval
 ```
 
-Note: `Custom_Interval` will still return the base `Interval()` class instance when using the factory functions `Custom_Interval.make_infinite_empty()` and `Custom_Interval.make_infinite_full()` unless the user somehow overrides the `@classmethod`s (python doesnt really seem to be designed to do this however).
+## iInterval() and iBound()
 
-## Multi_Interval()
+It is recommended that the iInterval class is constructed using the
+following factory methods which are easy to read and understand:
+```python
+from NicksIntervals.iInterval import iInterval
+my_interval = iInterval.closed(0.0, 1.0)
+my_interval = iInterval.closed_open(0.0, 1.0)
+my_interval = iInterval.open_closed(0.0, 1.0)
+my_interval = iInterval.open(0.0, 1.0)
+```
 
-Multi_Intervals may be returned as the result of some functions: eg.<br>
-`Interval(...).subtract(Interval(...))`
+If required an `iInterval` can be directly constructed by providing the internal `iBound` objects:
+```python
+from NicksIntervals.iBound import iBound
+from NicksIntervals.iBound import PART_OF_LEFT  # == True
+from NicksIntervals.iBound import PART_OF_RIGHT  # == False
+from NicksIntervals.iInterval import iInterval
+# construct an interval from 0.0 to 1.0 where the exact value of both bounds are
+# considered to be 'part of' this interval. (ie both bounds are closed)
+my_interval = iInterval(iBound(0.0, PART_OF_RIGHT), iBound(0.0, PART_OF_LEFT))
+```
+Observe that since iIntervals and iBounds are both immutable, iBounds may be safely shared between iInterval instances.
 
-They can also be constructed by passing an iterable containing Interval()s<br>
-`a = Multi_Interval([Interval(1,2), Interval(4,5)])`
+in the current implementation it may be slightly annoying to access the interval bound values,
+but this encapsulation of the value makes sense internally (I may find a way to improve this in the future): 
+```python
+print(my_interval.lower_bound.value) # >> 0.0
+print(my_interval.upper_bound.value) # >> 1.0
+```
+## iMulti_iInterval()
+This is the type for any arbitrary collection of `iIntervals`.
+The collection is stored as an immutable tuple.
+```python
+from NicksIntervals.iInterval import iInterval
+from NicksIntervals.iMulti_iInterval import iMulti_iInterval
+my_multi_interval = iMulti_iInterval(
+    (
+        iInterval.closed(1.0, 3.0),
+        iInterval.open(2.5, 3.1),
+        ...
+    )
+)
+```
+# work in progress
+the remainder of this readme needs to be updated to reflect the new immutable types
 
-Multi_Intervals will eventually support a number of more advanced functions and iterators to facilitate implementation of various line sweep algorithms.  
-
-# Implemented functions
-
-
-### Interval Union
+### iInterval Union
 ```python
 from Interval import Interval
 a = Interval(5, 15)
