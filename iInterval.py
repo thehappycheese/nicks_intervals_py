@@ -116,18 +116,20 @@ class iInterval:
 		╠═════╣
 			╠═════╣    ╞═══╣
 		"""
+		lbv = round(self.__lower_bound.value) if math.isfinite(self.__lower_bound.value) else (-999 if self.__lower_bound.value == float('-inf') else 999)
+		ubv = round(self.__upper_bound.value) if math.isfinite(self.__upper_bound.value) else (-999 if self.__upper_bound.value == float('-inf') else 999)
 		out = f"{self:2.0f} :"
-		for i in range(0, int(min(50, round(self.__upper_bound.value))) + 1):
-			if i < round(self.__lower_bound.value):
+		for i in range(0, min(50, ubv) + 1):
+			if i < lbv:
 				out += " "
-			elif round(self.__lower_bound.value) == i == round(self.__upper_bound.value):
+			elif lbv == i == ubv:
 				out += "║"
-			elif i == round(self.__lower_bound.value):
+			elif i == lbv:
 				if self.__lower_bound.part_of_right:
 					out += "╠"
 				else:
 					out += "╞"
-			elif i == round(self.__upper_bound.value):
+			elif i == ubv:
 				if self.__upper_bound.part_of_left:
 					out += "╣"
 				else:

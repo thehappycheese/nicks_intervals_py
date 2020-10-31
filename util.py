@@ -11,10 +11,10 @@ from NicksIntervals.Linked_iBound import Linked_iBound
 from NicksIntervals.iBound import iBound, iBound_Negative_Infinity, iBound_Positive_Infinity
 
 
-def iter_previous_and_next(some_iterable:Iterable) -> Iterator[Tuple[Any,Any,Any]]:
+def iter_previous_and_next(some_iterable: Iterable, none_value: Any = None) -> Iterator[Tuple[Any, Any, Any]]:
 	previous_items, current_items, next_items = tee(some_iterable, 3)
-	previous_items = chain([None], previous_items)
-	next_items = chain(islice(next_items, 1, None), [None])
+	previous_items = chain([none_value], previous_items)
+	next_items = chain(islice(next_items, 1, None), [none_value])
 	return zip(previous_items, current_items, next_items)
 
 

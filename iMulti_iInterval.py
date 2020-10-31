@@ -17,6 +17,7 @@ from . import util
 
 
 
+
 class iMulti_iInterval:
 	def __init__(self, iter_intervals: Iterable[iInterval]):
 		self.__lower_bound: iBound = iBound_Positive_Infinity
@@ -67,9 +68,6 @@ class iMulti_iInterval:
 	def lower_bound(self) -> iBound:
 		return self.__lower_bound
 	
-	def get_linked_bounds(self) -> Iterator[Linked_iBound]:
-		return itertools.chain.from_iterable(interval.get_linked_bounds() for interval in self.__intervals)
-	
 	def get_sorted_linked_bounds_with_stack_height(self) -> Iterator[Tuple[int, Linked_iBound, int]]:
 		"""
 		Returns a generator yielding tuples;
@@ -79,34 +77,48 @@ class iMulti_iInterval:
 			stack_height_after:int
 		)
 		"""
-		stack_count = 0
-		for previous_bound, current_bound, next_bound in util.iter_previous_and_next(sorted(self.get_linked_bounds())):
+		sorted_linked_bounds = sorted(itertools.chain.from_iterable(interval.get_linked_bounds() for interval in self.__intervals))
+		stack_count_before = 0
+		stack_count_after = 0
+		for previous_bound, current_bound, next_bound in util.iter_previous_and_next(sorted_linked_bounds):
 			if current_bound.is_lower_bound:
-				yield stack_count, current_bound, stack_count+1
-				stack_count += 1
+				stack_count_after += 1
 			else:
-				stack_count -= 1
-				yield stack_count+1, current_bound, stack_count
+				stack_count_after -= 1
+			yield stack_count_before, current_bound, stack_count_after
+			stack_count_before = stack_count_after
 					
-	def get_exterior_linked_bounds(self) -> Iterator[Linked_iBound]:
-		# TODO: This function is wrong. we cant lose the stack count. iter_iBounds_with_infinities() assumes alternating interior exterior. only true if touching intervals are merged. this is probably necessary for exterior to work to avoid degenerate intervals, but merging touching is not strictly required to find the interior.
-		#  anyway, we can circumvent the need for iter_iBounds_with_infinities by beefing up this function here to handle infinities.
-		return (bound for stack_before, bound, stack_after in self.get_sorted_linked_bounds_with_stack_height() if stack_before == 0 or stack_after == 0)
-	
-	def flatten_ex_int(self):
-		return [
-			(lower_bound, upper_bound, "INTERIOR" if interior else "EXTERIOR")
-			for lower_bound, upper_bound, interior
-			in util.iter_iBounds_with_infinities(item[0] for item in itertools.groupby(util.iter_iBound_from_iter_Linked_iBound(self.get_exterior_linked_bounds())))
-		]
+	def iter_linked_bound_pairs(self, merge_touching=False) -> Iterator[Tuple[iBound, iBound, bool]]:
+		"""
+		iterates over each pair of bounds in all intervals returning a tuple
+		adds infinities to the exterior as required.
+		(
+			previous_bound: iBound,
+			next_bound: iBound,
+			is_interior_interval: bool
+		)
+		"""
+		INTERIOR = True
+		EXTERIOR = False
+		for ((_, prev_bound, _), (stack_before, bound, stack_after), (_, next_bound, _)) in util.iter_previous_and_next(self.get_sorted_linked_bounds_with_stack_height(), (None, None, None)):
+			# if not merge_touching or (stack_before == 0 or stack_after == 0):  # TODO: this switch didnt work
+			if prev_bound is None:
+				if bound != iBound_Negative_Infinity:
+					yield iBound_Negative_Infinity, bound.bound, EXTERIOR
+			else:
+				yield prev_bound.bound, bound.bound, EXTERIOR if stack_before == 0 else INTERIOR
+				
+			if next_bound is None:
+				if bound != iBound_Positive_Infinity:
+					yield bound.bound, iBound_Positive_Infinity, EXTERIOR
 	
 	@property
 	def exterior(self) -> iMulti_iInterval:
 		return iMulti_iInterval(
 			iInterval(lower_bound, upper_bound)
 			for lower_bound, upper_bound, interior
-			in util.iter_iBounds_with_infinities(item[0] for item in itertools.groupby(util.iter_iBound_from_iter_Linked_iBound(self.get_exterior_linked_bounds())))
-			if not interior and not lower_bound == upper_bound
+			in self.iter_linked_bound_pairs()
+			if not interior and lower_bound != upper_bound
 		)
 		
 	@property
@@ -115,8 +127,8 @@ class iMulti_iInterval:
 		return iMulti_iInterval(
 			iInterval(lower_bound, upper_bound)
 			for lower_bound, upper_bound, interior
-			in util.iter_iBounds_with_infinities(util.iter_iBound_from_iter_Linked_iBound(self.get_exterior_linked_bounds()))
-			if interior and not lower_bound == upper_bound
+			in self.iter_linked_bound_pairs()
+			if interior and lower_bound != upper_bound
 		)
 	
 	def subtract(self, interval_to_subtract: iInterval):
