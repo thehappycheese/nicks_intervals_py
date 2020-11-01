@@ -234,8 +234,8 @@ class iInterval:
 			return (iInterval(self.__upper_bound, iBound_Positive_Infinity), )
 		
 	@property
-	def exterior(self) -> Union[Tuple[()], Tuple[iInterval], Tuple[iInterval, iInterval]]:
-		return (*self.left_exterior, *self.right_exterior)
+	def exterior(self) -> NicksIntervals.iMulti_iInterval.iMulti_iInterval:
+		return NicksIntervals.iMulti_iInterval.iMulti_iInterval((*self.left_exterior, *self.right_exterior))
 	
 	def touches(self, other: Iterable[iInterval]) -> bool:
 		for other_interval in other:
@@ -291,25 +291,12 @@ class iInterval:
 				result.extend(iInterval(other_interval.__lower_bound, self.__upper_bound))
 		return NicksIntervals.iMulti_iInterval.iMulti_iInterval(result)
 	
-	def subtract(self, other: Iterable[iInterval]) -> Iterable[iInterval]:
-		
-		# TODO: This works. But can it be even more slick...
-		# result = self
-		# for other_sub_interval in other:
-		# 	p1 = []
-		# 	for self_sub_interval in result:
-		# 		p1.extend(itertools.chain(*(exterior.intersect(self_sub_interval) for exterior in other_sub_interval.exterior)))
-		# 	result = tuple(p1)
-		# return result
+	def subtract(self, other_intervals: Iterable[iInterval]) -> NicksIntervals.iMulti_iInterval.iMulti_iInterval:
 		
 		result = self
-		for other_sub_interval in other:
-			result = (
-				itertools.chain(*(
-					itertools.chain(*(
-						exterior.intersect(self_sub_interval) for exterior in other_sub_interval.exterior
-					)) for self_sub_interval in result
-				))
+		for other_interval in other_intervals:
+			result = list(
+				itertools.chain.from_iterable(each_exterior.intersect(self_sub_interval) for each_exterior in other_interval.exterior for self_sub_interval in result)
 			)
 		return NicksIntervals.iMulti_iInterval.iMulti_iInterval(result)
 	

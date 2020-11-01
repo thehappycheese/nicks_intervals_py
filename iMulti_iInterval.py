@@ -97,9 +97,7 @@ class iMulti_iInterval:
 	
 	def iter_bound_pairs_merge_touching(self) -> Iterator[Tuple[iBound, iBound, bool]]:
 		for is_interior, group in itertools.groupby(self.iter_bound_pairs(), lambda item: item[2]):
-			lgroup = list(group)
-			flast = list(util.first_and_last(lgroup))
-			(first_bound, _, _), (_, last_bound, _) = flast
+			(first_bound, _, _), (_, last_bound, _) = util.first_and_last(group)
 			yield first_bound, last_bound, is_interior
 	
 	@property
@@ -108,7 +106,7 @@ class iMulti_iInterval:
 			NicksIntervals.iInterval.iInterval(lower_bound, upper_bound)
 			for lower_bound, upper_bound, interior
 			in self.iter_bound_pairs()
-			if not interior # and lower_bound != upper_bound  # TODO: lower != upper check may be redundant?
+			if not interior
 		)
 		
 	@property
@@ -132,10 +130,10 @@ class iMulti_iInterval:
 	def subtract(self, other_intervals: Iterable[NicksIntervals.iInterval.iInterval]) -> iMulti_iInterval:
 		result = self.__intervals
 		for other_interval in other_intervals:
-			result = list(itertools.chain.from_iterable(interval.subtract(other_interval) if interval.intersects(other_interval) else interval for interval in result))
+			result = list(itertools.chain.from_iterable(self_sub_interval.subtract(other_interval) if self_sub_interval.intersects(other_interval) else self_sub_interval for self_sub_interval in result))
 		return iMulti_iInterval(result)
 		
-	def intersect(self, other_intervals: Iterable[NicksIntervals.iInterval.iInterval]) -> iMulti_iInterval:
+	def intersect(self, other_intervals: Union[NicksIntervals.iInterval.iInterval, iMulti_iInterval]) -> iMulti_iInterval:
 		return self.subtract(other_intervals.exterior)
 	
 	def delete_infinitesimal(self) -> iMulti_iInterval:
