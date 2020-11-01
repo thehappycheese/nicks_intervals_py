@@ -21,6 +21,8 @@ from .iBound import iBound
 from .iBound import iBound_Negative_Infinity
 from .iBound import iBound_Positive_Infinity
 
+import NicksIntervals.iMulti_iInterval
+
 
 class iInterval:
 	"""Immutable Interval based on python's built in floats. Nothing fancy."""
@@ -109,6 +111,9 @@ class iInterval:
 	
 	def __iter__(self):
 		return iter((self,))
+	
+	def __bool__(self):
+		return True
 	
 	def print(self):
 		"""
@@ -215,7 +220,7 @@ class iInterval:
 			return self.contains_lower_bound(other.__lower_bound) and self.contains_upper_bound(other.__upper_bound)
 	
 	@property
-	def left_exterior(self) -> Tuple[iInterval, ...]:
+	def left_exterior(self) -> Union[Tuple[()], Tuple[iInterval]]:
 		if self.__lower_bound == iBound_Negative_Infinity:
 			return tuple()
 		else:
@@ -284,7 +289,7 @@ class iInterval:
 			# result:        ╠══════╣
 			if other_contains_self_upper_bound:
 				result.extend(iInterval(other_interval.__lower_bound, self.__upper_bound))
-		return tuple(result)
+		return NicksIntervals.iMulti_iInterval.iMulti_iInterval(result)
 	
 	def subtract(self, other: Iterable[iInterval]) -> Iterable[iInterval]:
 		
@@ -306,7 +311,7 @@ class iInterval:
 					)) for self_sub_interval in result
 				))
 			)
-		return tuple(result)
+		return NicksIntervals.iMulti_iInterval.iMulti_iInterval(result)
 	
 	def hull(self, other: Iterable[iInterval]) -> Iterable[iInterval]:
 		result_lower_bound = self.__lower_bound
@@ -319,4 +324,4 @@ class iInterval:
 		return iInterval(result_lower_bound, result_upper_bound)
 	
 	def union(self, other: Iterable[iInterval]) -> Iterable[iInterval]:
-		return tuple(itertools.chain(self, other))
+		return NicksIntervals.iMulti_iInterval.iMulti_iInterval(itertools.chain(self, other))

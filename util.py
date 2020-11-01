@@ -3,6 +3,7 @@ from itertools import chain, islice, tee
 
 # credit to nosklo https://stackoverflow.com/questions/1011938/python-loop-that-also-accesses-previous-and-next-values
 from typing import Any
+from typing import Callable
 from typing import Iterable
 from typing import Iterator
 from typing import Tuple
@@ -16,6 +17,11 @@ def iter_previous_and_next(some_iterable: Iterable, none_value: Any = None) -> I
 	previous_items = chain([none_value], previous_items)
 	next_items = chain(islice(next_items, 1, None), [none_value])
 	return zip(previous_items, current_items, next_items)
+
+
+def map_first_and_last(iterable:Iterator, map:Callable) -> Tuple[Any, Any]:
+	iter_to_list = list(iterable)  # evaluate the entire thing only once
+	return map(iter_to_list[0]), map(iter_to_list[-1])
 
 
 # My recent dive into Haskell youtube videos is haunting my codebase:

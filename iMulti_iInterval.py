@@ -1,47 +1,29 @@
 from __future__ import annotations
 
 import itertools
+from typing import Generator
 from typing import Iterable
 from typing import Iterator
 from typing import Tuple
 from typing import Union
 
+from . import util
+from .Linked_iBound import Linked_iBound
 from .iBound import iBound
 from .iBound import iBound_Negative_Infinity
 from .iBound import iBound_Positive_Infinity
-
-from .iInterval import iInterval
-from .Linked_iBound import Linked_iBound
-
-from . import util
-
-
+import NicksIntervals.iInterval
 
 
 class iMulti_iInterval:
-	def __init__(self, iter_intervals: Iterable[iInterval]):
-		self.__lower_bound: iBound = iBound_Positive_Infinity
-		self.__upper_bound: iBound = iBound_Negative_Infinity
-		self.__intervals: Tuple[iInterval] = tuple(sorted(iter_intervals, key=lambda item: item.lower_bound))
-		self.__is_empty = False
-		if len(self.__intervals) == 0:
-			self.__is_empty = True
-		else:
-			for interval in self.__intervals:
-				if interval.lower_bound < self.__lower_bound:
-					self.__lower_bound = interval.lower_bound
-				if interval.upper_bound > self.__upper_bound:
-					self.__upper_bound = interval.upper_bound
-		
-	@property
-	def is_empty(self):
-		return self.__is_empty
+	def __init__(self, iter_intervals: Iterable[NicksIntervals.iInterval.iInterval]):
+		self.__intervals: Tuple[NicksIntervals.iInterval.iInterval] = tuple(iter_intervals)
 	
 	@property
-	def intervals(self) -> Iterable[iInterval]:
+	def intervals(self) -> Iterable[NicksIntervals.iInterval.iInterval]:
 		return self.__intervals
 	
-	def __iter__(self) -> Iterator[iInterval]:
+	def __iter__(self) -> Iterator[NicksIntervals.iInterval.iInterval]:
 		return iter(self.__intervals)
 	
 	def __format__(self, format_spec):
@@ -62,13 +44,13 @@ class iMulti_iInterval:
 	
 	@property
 	def upper_bound(self) -> iBound:
-		return self.__upper_bound
+		return max(bound.bound for bound in itertools.chain.from_iterable(interval.get_linked_bounds() for interval in self.__intervals))
 	
 	@property
 	def lower_bound(self) -> iBound:
-		return self.__lower_bound
+		return min(bound.bound for bound in itertools.chain.from_iterable(interval.get_linked_bounds() for interval in self.__intervals))
 	
-	def get_sorted_linked_bounds_with_stack_height(self) -> Iterator[Tuple[int, Linked_iBound, int]]:
+	def get_sorted_linked_bounds_with_stack_height(self) -> Generator[Tuple[int, Linked_iBound, int], None, None]:
 		"""
 		Returns a generator yielding tuples;
 		(
@@ -88,7 +70,7 @@ class iMulti_iInterval:
 			yield stack_count_before, current_bound, stack_count_after
 			stack_count_before = stack_count_after
 					
-	def iter_linked_bound_pairs(self, merge_touching=False) -> Iterator[Tuple[iBound, iBound, bool]]:
+	def iter_linked_bound_pairs(self) -> Iterator[Tuple[iBound, iBound, bool]]:
 		"""
 		iterates over each pair of bounds in all intervals returning a tuple
 		adds infinities to the exterior as required.
@@ -101,7 +83,6 @@ class iMulti_iInterval:
 		INTERIOR = True
 		EXTERIOR = False
 		for ((_, prev_bound, _), (stack_before, bound, stack_after), (_, next_bound, _)) in util.iter_previous_and_next(self.get_sorted_linked_bounds_with_stack_height(), (None, None, None)):
-			# if not merge_touching or (stack_before == 0 or stack_after == 0):  # TODO: this switch didnt work
 			if prev_bound is None:
 				if bound != iBound_Negative_Infinity:
 					yield iBound_Negative_Infinity, bound.bound, EXTERIOR
@@ -111,11 +92,11 @@ class iMulti_iInterval:
 			if next_bound is None:
 				if bound != iBound_Positive_Infinity:
 					yield bound.bound, iBound_Positive_Infinity, EXTERIOR
-	
+		
 	@property
 	def exterior(self) -> iMulti_iInterval:
 		return iMulti_iInterval(
-			iInterval(lower_bound, upper_bound)
+			NicksIntervals.iInterval.iInterval(lower_bound, upper_bound)
 			for lower_bound, upper_bound, interior
 			in self.iter_linked_bound_pairs()
 			if not interior and lower_bound != upper_bound
@@ -123,55 +104,34 @@ class iMulti_iInterval:
 		
 	@property
 	def interior(self) -> iMulti_iInterval:
-		# assume for interior we may skip the itertools.groupby() step because none of the existing interior intervals would be an invalid degenerate??
 		return iMulti_iInterval(
-			iInterval(lower_bound, upper_bound)
+			NicksIntervals.iInterval.iInterval(lower_bound, upper_bound)
 			for lower_bound, upper_bound, interior
 			in self.iter_linked_bound_pairs()
 			if interior and lower_bound != upper_bound
 		)
 	
-	def subtract(self, interval_to_subtract: iInterval):
-		new_interval_list = []
-		for interval in self:
-			if interval.intersects(interval_to_subtract):  # TODO: not great efficiency
-				f = interval.subtract(interval_to_subtract)
-				if f is not None:
-					try:
-						# assume f is a Multi_Interval
-						for pieces in f.__intervals:
-							new_interval_list.append(pieces)
-					except:
-						# f is an Interval
-						new_interval_list.append(f)
-			else:
-				new_interval_list.append(interval)
-		return iMulti_iInterval(new_interval_list)
+	def subtract(self, other_intervals: Iterable[NicksIntervals.iInterval.iInterval]) -> iMulti_iInterval:
+		result = self.__intervals
+		for other_interval in other_intervals:
+			result = list(itertools.chain.from_iterable(interval.subtract(other_interval) if interval.intersects(other_interval) else interval for interval in result))
+		return iMulti_iInterval(result)
 		
-	def intersection(self, arg_interval: Union[Interval, Multi_Interval]) -> Multi_Interval:
-		if isinstance(arg_interval, Multi_Interval):
-			result_multi_interval: Multi_Interval = type(self)([])
-			for my_interval in self.__intervals:
-				for other_interval in arg_interval.__intervals:
-					result_multi_interval.add_soft(my_interval.intersect(other_interval))
-			return result_multi_interval.delete_infinitesimal()
-		elif isinstance(arg_interval, Interval):
-			result_multi_interval: Multi_Interval = type(self)([])
-			for my_interval in self.__intervals:
-				result_multi_interval.add_soft(my_interval.intersect(arg_interval))
-			return result_multi_interval.delete_infinitesimal()
-		else:
-			raise Exception("Type error in MultiInterval().intersection()")
+	def intersect(self, other_intervals: Iterable[NicksIntervals.iInterval.iInterval]) -> iMulti_iInterval:
+		return self.subtract(other_intervals.exterior)
 	
-	def delete_infinitesimal(self) -> Multi_iInterval:
-		self.__intervals = [interval for interval in self.__intervals if not interval.is_infinitesimal]
-		return self
+	def delete_infinitesimal(self) -> iMulti_iInterval:
+		return iMulti_iInterval(interval for interval in self.__intervals if not interval.is_infinitesimal)
 	
 	def has_infinitesimal(self):
 		return any(interval.is_infinitesimal for interval in self.__intervals)  # I learned generator expressions :O
 	
-	def hull(self) -> iInterval:
-		if self.__intervals:
-			return iInterval(self.lower_bound, self.upper_bound)
-		else:
-			return None
+	def hull(self, other_intervals: Iterable[NicksIntervals.iInterval.iInterval]) -> Iterable[NicksIntervals.iInterval.iInterval]:
+		lower_bound = iBound_Positive_Infinity
+		upper_bound = iBound_Negative_Infinity
+		for interval in itertools.chain(self, other_intervals or []):
+			if interval.lower_bound < lower_bound:
+				lower_bound = interval.lower_bound
+			if interval.upper_bound > upper_bound:
+				upper_bound = interval.upper_bound
+		return NicksIntervals.iInterval.iInterval(lower_bound, upper_bound) if lower_bound != upper_bound and upper_bound != iBound_Negative_Infinity else iMulti_iInterval([])
