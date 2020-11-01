@@ -70,9 +70,10 @@ class iMulti_iInterval:
 			yield stack_count_before, current_bound, stack_count_after
 			stack_count_before = stack_count_after
 					
-	def iter_linked_bound_pairs(self) -> Iterator[Tuple[iBound, iBound, bool]]:
+	def iter_bound_pairs(self) -> Iterator[Tuple[iBound, iBound, bool]]:
 		"""
 		iterates over each pair of bounds in all intervals returning a tuple
+		pairs of bounds that do not form a valid interval are ignored.
 		adds infinities to the exterior as required.
 		(
 			previous_bound: iBound,
@@ -87,19 +88,27 @@ class iMulti_iInterval:
 				if bound != iBound_Negative_Infinity:
 					yield iBound_Negative_Infinity, bound.bound, EXTERIOR
 			else:
-				yield prev_bound.bound, bound.bound, EXTERIOR if stack_before == 0 else INTERIOR
+				if prev_bound.bound != bound.bound:
+					yield prev_bound.bound, bound.bound, EXTERIOR if stack_before == 0 else INTERIOR
 				
 			if next_bound is None:
 				if bound != iBound_Positive_Infinity:
 					yield bound.bound, iBound_Positive_Infinity, EXTERIOR
-		
+	
+	def iter_bound_pairs_merge_touching(self) -> Iterator[Tuple[iBound, iBound, bool]]:
+		for is_interior, group in itertools.groupby(self.iter_bound_pairs(), lambda item: item[2]):
+			lgroup = list(group)
+			flast = list(util.first_and_last(lgroup))
+			(first_bound, _, _), (_, last_bound, _) = flast
+			yield first_bound, last_bound, is_interior
+	
 	@property
 	def exterior(self) -> iMulti_iInterval:
 		return iMulti_iInterval(
 			NicksIntervals.iInterval.iInterval(lower_bound, upper_bound)
 			for lower_bound, upper_bound, interior
-			in self.iter_linked_bound_pairs()
-			if not interior and lower_bound != upper_bound
+			in self.iter_bound_pairs()
+			if not interior # and lower_bound != upper_bound  # TODO: lower != upper check may be redundant?
 		)
 		
 	@property
@@ -107,8 +116,17 @@ class iMulti_iInterval:
 		return iMulti_iInterval(
 			NicksIntervals.iInterval.iInterval(lower_bound, upper_bound)
 			for lower_bound, upper_bound, interior
-			in self.iter_linked_bound_pairs()
-			if interior and lower_bound != upper_bound
+			in self.iter_bound_pairs()
+			if interior
+		)
+	
+	@property
+	def interior_merged(self) -> iMulti_iInterval:
+		return iMulti_iInterval(
+			NicksIntervals.iInterval.iInterval(lower_bound, upper_bound)
+			for lower_bound, upper_bound, interior
+			in self.iter_bound_pairs_merge_touching()
+			if interior
 		)
 	
 	def subtract(self, other_intervals: Iterable[NicksIntervals.iInterval.iInterval]) -> iMulti_iInterval:
