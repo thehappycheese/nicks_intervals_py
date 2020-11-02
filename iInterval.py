@@ -12,7 +12,6 @@ import itertools
 import math
 from typing import Iterable
 from typing import Tuple
-from typing import Union
 
 from .Linked_iBound import Linked_iBound
 from .iBound import PART_OF_LEFT
@@ -29,6 +28,7 @@ class iInterval:
 	
 	@classmethod
 	def complete(cls):
+		"""returns an interval spaning the complete real number line. Or at least all representable python floats."""
 		return iInterval(
 			lower_bound=iBound_Positive_Infinity,
 			upper_bound=iBound_Negative_Infinity
@@ -36,6 +36,7 @@ class iInterval:
 	
 	@classmethod
 	def degenerate(cls, value: float = 0.0):
+		"""returns a zero-length 'degenerate' interval"""
 		return iInterval(
 			lower_bound=iBound(value, PART_OF_RIGHT),
 			upper_bound=iBound(value, PART_OF_LEFT)
@@ -56,6 +57,32 @@ class iInterval:
 	@classmethod
 	def closed_open(cls, lower_bound: float, upper_bound: float):
 		return iInterval(iBound(lower_bound, PART_OF_RIGHT), iBound(upper_bound, PART_OF_RIGHT))
+	
+	@classmethod
+	def inf_open(cls, upper_bound: float):
+		return iInterval(iBound_Negative_Infinity, iBound(upper_bound, PART_OF_RIGHT))
+	
+	@classmethod
+	def open_inf(cls, lower_bound: float):
+		return iInterval(iBound(lower_bound, PART_OF_LEFT), iBound_Positive_Infinity)
+	
+	@classmethod
+	def closed_inf(cls, lower_bound: float):
+		return iInterval(iBound(lower_bound, PART_OF_RIGHT), iBound_Positive_Infinity)
+	
+	@classmethod
+	def inf_closed(cls, upper_bound: float):
+		return iInterval(iBound_Negative_Infinity, iBound(upper_bound, PART_OF_LEFT))
+	
+	@classmethod
+	def inf(cls):
+		"""Alias of .complete()"""
+		return iInterval(iBound_Negative_Infinity, iBound_Positive_Infinity)
+	
+	@classmethod
+	def empty(cls):
+		"""returns a null or non-interval which is still of the type Iterable[iInterval] but will yield no items"""
+		return NicksIntervals.iMulti_iInterval.iMulti_iInterval([])
 	
 	def __init__(self, lower_bound: iBound, upper_bound: iBound):
 		try:
@@ -220,18 +247,18 @@ class iInterval:
 			return self.contains_lower_bound(other.__lower_bound) and self.contains_upper_bound(other.__upper_bound)
 	
 	@property
-	def left_exterior(self) -> Union[Tuple[()], Tuple[iInterval]]:
+	def left_exterior(self) -> Iterable[iInterval]:
 		if self.__lower_bound == iBound_Negative_Infinity:
-			return tuple()
+			return iInterval.empty()
 		else:
-			return (iInterval(iBound_Negative_Infinity, self.__lower_bound), )
+			return iInterval(iBound_Negative_Infinity, self.__lower_bound)
 	
 	@property
-	def right_exterior(self) -> Union[Tuple[()], Tuple[iInterval]]:
+	def right_exterior(self) -> Iterable[iInterval]:
 		if self.__upper_bound == iBound_Positive_Infinity:
-			return tuple()
+			return iInterval.empty()
 		else:
-			return (iInterval(self.__upper_bound, iBound_Positive_Infinity), )
+			return iInterval(self.__upper_bound, iBound_Positive_Infinity)
 		
 	@property
 	def exterior(self) -> NicksIntervals.iMulti_iInterval.iMulti_iInterval:
@@ -246,15 +273,15 @@ class iInterval:
 		return False
 	
 	def intersects(self, other: Iterable[iInterval]) -> bool:
-		for other_interval in other:
-			if (
-				self.contains_lower_bound(other_interval.__lower_bound) or
-				self.contains_upper_bound(other_interval.__upper_bound) or
-				other_interval.contains_lower_bound(self.__lower_bound) or
-				other_interval.contains_upper_bound(self.__upper_bound)
-			):
-				return True
-		return False
+		return any(
+			self.contains_lower_bound(other_interval.__lower_bound) or
+			self.contains_upper_bound(other_interval.__upper_bound) or
+			other_interval.contains_lower_bound(self.__lower_bound) or
+			other_interval.contains_upper_bound(self.__upper_bound) for other_interval in other
+		)
+	
+	def disjoint(self, other: Iterable[iInterval]):
+		return not self.intersects(other)
 	
 	def intersect(self, other: Iterable[iInterval]) -> Iterable[iInterval]:
 		result = []
@@ -266,7 +293,8 @@ class iInterval:
 			#  other:        ╠════╣
 			# result:        ╠════╣
 			if self_contains_other_lower_bound and self_contains_other_upper_bound:
-				result.extend(other_interval)
+				result.append(other_interval)
+				continue
 			
 			other_contains_self_lower_bound = other_interval.contains_lower_bound(self.__lower_bound)
 			
@@ -274,7 +302,8 @@ class iInterval:
 			#  other:  ╠════════════╣
 			# result:        ╠══════╣
 			if other_contains_self_lower_bound:
-				result.extend(iInterval(self.__lower_bound, other_interval.__upper_bound))
+				result.append(iInterval(self.__lower_bound, other_interval.__upper_bound))
+				continue
 			
 			other_contains_self_upper_bound = other_interval.contains_upper_bound(self.__upper_bound)
 			
@@ -282,22 +311,75 @@ class iInterval:
 			#  other:  ╠════════════╣
 			# result:        ╠════╣
 			if other_contains_self_lower_bound and other_contains_self_upper_bound:
-				result.extend(self)
+				result.append(self)
+				continue
 				
 			#   self:    ╠══════════╣
 			#  other:        ╠════════════╣
 			# result:        ╠══════╣
 			if other_contains_self_upper_bound:
-				result.extend(iInterval(other_interval.__lower_bound, self.__upper_bound))
+				result.append(iInterval(other_interval.__lower_bound, self.__upper_bound))
+				
 		return NicksIntervals.iMulti_iInterval.iMulti_iInterval(result)
 	
 	def subtract(self, other_intervals: Iterable[iInterval]) -> NicksIntervals.iMulti_iInterval.iMulti_iInterval:
-		
-		result = self
+		interim_result = []
+		result = [self]
 		for other_interval in other_intervals:
-			result = list(
-				itertools.chain.from_iterable(each_exterior.intersect(self_sub_interval) for each_exterior in other_interval.exterior for self_sub_interval in result)
-			)
+			
+			interim_result = []
+			for self_interval in result:
+				
+				other_contains_self_lower_bound = other_interval.contains_lower_bound(self_interval.__lower_bound)
+				other_contains_self_upper_bound = other_interval.contains_upper_bound(self_interval.__upper_bound)
+				
+				#   self:        ╠════╣
+				#  other:  ╠════════════╣
+				# result:
+				if other_contains_self_lower_bound and other_contains_self_upper_bound:
+					continue
+				
+				self_contains_other_lower_bound = self_interval.contains_lower_bound(other_interval.__lower_bound)
+				self_contains_other_upper_bound = self_interval.contains_upper_bound(other_interval.__upper_bound)
+				
+				#   self:  ╠════════════╣
+				#  other:        ╠════╣
+				# result:  ╠═════╡    ╞═╣
+				if self_contains_other_lower_bound and self_contains_other_upper_bound:
+					if self_interval.__lower_bound != other_interval.__lower_bound:
+						interim_result.append(iInterval(self_interval.__lower_bound, other_interval.__lower_bound))
+					if other_interval.__upper_bound != self_interval.__upper_bound:
+						interim_result.append(iInterval(other_interval.__upper_bound, self_interval.__upper_bound))
+					continue
+				
+				#   self:        ╠══════════╣
+				#  other:  ╠════════════╣
+				# result:               ╞═══╣
+				if other_contains_self_lower_bound:
+					if other_interval.__upper_bound != self_interval.__upper_bound:
+						interim_result.append(iInterval(other_interval.__upper_bound, self_interval.__upper_bound))
+					continue
+				
+				#   self:        ╠════╣
+				#  other:  ╠════════════╣
+				# result:
+				# if other_contains_self_lower_bound and other_contains_self_upper_bound:
+				# 	pass
+				#   continue
+				
+				#   self:    ╠══════════╣
+				#  other:        ╠════════════╣
+				# result:    ╠═══╡
+				if other_contains_self_upper_bound:
+					if self_interval.__lower_bound != other_interval.__lower_bound:
+						interim_result.append(iInterval(self_interval.__lower_bound, other_interval.__lower_bound))
+					continue
+					
+				# if execution makes it past all above continues, the only remaining possibility is that the intervals are disjoint
+				# in this case the entire self interval is output
+				interim_result.append(self_interval)
+			result = interim_result
+			
 		return NicksIntervals.iMulti_iInterval.iMulti_iInterval(result)
 	
 	def hull(self, other: Iterable[iInterval]) -> Iterable[iInterval]:
