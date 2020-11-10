@@ -323,7 +323,6 @@ class iInterval:
 		return NicksIntervals.iMulti_iInterval.iMulti_iInterval(result)
 	
 	def subtract(self, other_intervals: Iterable[iInterval]) -> NicksIntervals.iMulti_iInterval.iMulti_iInterval:
-		interim_result = []
 		result = [self]
 		for other_interval in other_intervals:
 			
