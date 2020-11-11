@@ -6,16 +6,17 @@ from typing import Iterable
 from typing import Iterator
 from typing import Tuple
 
-from NicksIntervals import _operators as ops
+
 import NicksIntervals.iInterval
 from . import util
 from .Linked_iBound import Linked_iBound
 from .iBound import iBound
 from .iBound import iBound_Negative_Infinity
 from .iBound import iBound_Positive_Infinity
+from .non_atomic_super import non_atomic_super
+from NicksIntervals import _operators as ops
 
-
-class iMulti_iInterval:
+class iMulti_iInterval(non_atomic_super):
 
 	def __init__(self, iter_intervals: Iterable[NicksIntervals.iInterval.iInterval]):
 		self.__intervals: Tuple[NicksIntervals.iInterval.iInterval] = tuple(iter_intervals)
@@ -128,30 +129,8 @@ class iMulti_iInterval:
 			if interior
 		)
 	
-	def subtract(self, other_intervals: Iterable[NicksIntervals.iInterval.iInterval]) -> iMulti_iInterval:
-		result = self.__intervals
-		for other_interval in other_intervals:
-			result = list(itertools.chain.from_iterable(self_sub_interval.subtract(other_interval) if self_sub_interval.intersects(other_interval) else self_sub_interval for self_sub_interval in result))
-		return iMulti_iInterval(result)
-	
-	def intersects(self, other_intervals):
-		return any(self_interval.intersects(other_interval) for self_interval in self.__intervals for other_interval in other_intervals)
-	
-	def intersect(self, other_intervals: Iterable[NicksIntervals.iInterval.iInterval]) -> iMulti_iInterval:
-		return self.subtract(iMulti_iInterval(other_intervals).exterior)
-	
-	def delete_infinitesimal(self) -> iMulti_iInterval:
+	def without_infinitesimal(self) -> iMulti_iInterval:
 		return iMulti_iInterval(interval for interval in self.__intervals if not interval.is_infinitesimal)
 	
 	def has_infinitesimal(self):
 		return any(interval.is_infinitesimal for interval in self.__intervals)  # I learned generator expressions :O
-	
-	def hull(self, other_intervals: Iterable[NicksIntervals.iInterval.iInterval]) -> Iterable[NicksIntervals.iInterval.iInterval]:
-		lower_bound = iBound_Positive_Infinity
-		upper_bound = iBound_Negative_Infinity
-		for interval in itertools.chain(self, other_intervals or []):
-			if interval.lower_bound < lower_bound:
-				lower_bound = interval.lower_bound
-			if interval.upper_bound > upper_bound:
-				upper_bound = interval.upper_bound
-		return NicksIntervals.iInterval.iInterval(lower_bound, upper_bound) if lower_bound != upper_bound and upper_bound != iBound_Negative_Infinity else iMulti_iInterval([])
