@@ -30,18 +30,17 @@ class iInterval:
 	@classmethod
 	def complete(cls):
 		"""returns an interval spaning the complete real number line. Or at least all representable python floats."""
-		return iInterval(
-			lower_bound=iBound_Negative_Infinity,
-			upper_bound=iBound_Positive_Infinity
-		)
+		return iInterval(lower_bound=iBound_Negative_Infinity, upper_bound=iBound_Positive_Infinity)
 	
+	@classmethod
+	def inf(cls):
+		"""Alias of .complete()"""
+		return iInterval(iBound_Negative_Infinity, iBound_Positive_Infinity)
+
 	@classmethod
 	def degenerate(cls, value: float = 0.0):
 		"""returns a zero-length 'degenerate' interval"""
-		return iInterval(
-			lower_bound=iBound(value, PART_OF_RIGHT),
-			upper_bound=iBound(value, PART_OF_LEFT)
-		)
+		return iInterval(iBound(value, PART_OF_RIGHT), iBound(value, PART_OF_LEFT))
 	
 	@classmethod
 	def closed(cls, lower_bound: float, upper_bound: float):
@@ -76,20 +75,12 @@ class iInterval:
 		return iInterval(iBound_Negative_Infinity, iBound(upper_bound, PART_OF_LEFT))
 	
 	@classmethod
-	def inf(cls):
-		"""Alias of .complete()"""
-		return iInterval(iBound_Negative_Infinity, iBound_Positive_Infinity)
-	
-	@classmethod
 	def empty(cls):
 		"""returns a null or non-interval which is still of the type Iterable[iInterval] but will yield no items"""
 		return NicksIntervals.iMulti_iInterval.iMulti_iInterval([])
 	
 	def __init__(self, lower_bound: iBound, upper_bound: iBound):
-		try:
-			assert isinstance(lower_bound, iBound)
-			assert isinstance(upper_bound, iBound)
-		except AssertionError:
+		if not (isinstance(lower_bound, iBound) and isinstance(upper_bound, iBound)):
 			raise TypeError("Bounds must be an instance of iBound")
 		
 		self.__lower_bound: iBound = lower_bound
@@ -215,7 +206,7 @@ class iInterval:
 		
 	def contains_interval(self, other: Iterable[iInterval]) -> bool:
 		return ops.contains_interval(self, other)
-	 
+
 	# @property
 	# def left_exterior(self) -> Iterable[iInterval]:
 	# 	return ops.left_exterior_atomic(self)
@@ -244,7 +235,6 @@ class iInterval:
 	
 	def intersect(self, other: Iterable[iInterval]) -> Iterable[iInterval]:
 		return ops.intersect(self, other)
-		
 	
 	def subtract(self, other_intervals: Iterable[iInterval]) -> NicksIntervals.iMulti_iInterval.iMulti_iInterval:
 		result = [self]
