@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 
 
 class Linked_iBound(iBound):
-	def __init__(self, interval: iInterval, bound: iBound):
+	def __init__(self, bound: iBound, interval: iInterval, is_lower_bound: bool):
 		"""
 		This class allows intervals to be decomposed into bounds without forgetting where the bound came from and if it was and an upper or lower bound.
 		it should not be instantiated directly, but obtained through an instance of iInterval by calling:
@@ -19,13 +19,7 @@ class Linked_iBound(iBound):
 		super().__init__(bound.value, bound.part_of_left)
 		self.__interval: iInterval = interval
 		self.__bound: iBound = bound
-		self.__is_lower_bound: bool
-		if interval.lower_bound is bound:
-			self.__is_lower_bound = True
-		elif interval.upper_bound is bound:
-			self.__is_lower_bound = False
-		else:
-			raise Exception("bound must be part of the interval")
+		self.__is_lower_bound = is_lower_bound
 	
 	def __format__(self, format_spec):
 		lower_or_upper_bound_string = "Lower"

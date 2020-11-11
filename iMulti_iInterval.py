@@ -6,6 +6,7 @@ from typing import Iterable
 from typing import Iterator
 from typing import Tuple
 
+from NicksIntervals import _operators as ops
 import NicksIntervals.iInterval
 from . import util
 from .Linked_iBound import Linked_iBound
@@ -83,7 +84,7 @@ class iMulti_iInterval:
 		"""
 		INTERIOR = True
 		EXTERIOR = False
-		for ((_, prev_bound, _), (stack_before, bound, stack_after), (_, next_bound, _)) in util.iter_previous_and_next(self.get_sorted_linked_bounds_with_stack_height(), (None, None, None)):
+		for ((_, prev_bound, _), (stack_before, bound, stack_after), (_, next_bound, _)) in util.iter_previous_and_next(ops.get_sorted_linked_bounds_with_stack_height(self), (None, None, None)):
 			if prev_bound is None:
 				if bound != iBound_Negative_Infinity:
 					yield iBound_Negative_Infinity, bound.bound, EXTERIOR

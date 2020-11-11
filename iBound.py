@@ -1,3 +1,8 @@
+from __future__ import annotations
+import NicksIntervals.Linked_iBound
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+	from NicksIntervals.iInterval import iInterval
 import math
 
 
@@ -79,6 +84,9 @@ class iBound:
 	
 	def __repr__(self):
 		return format(self, ".2f")
+	
+	def get_Linked_iBound(self, linked_interval: iInterval, is_lower_bound: bool):
+		return NicksIntervals.Linked_iBound.Linked_iBound(self, linked_interval, is_lower_bound)
 
 
 iBound_Negative_Infinity = iBound(float('-inf'), PART_OF_RIGHT)
