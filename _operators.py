@@ -1,17 +1,18 @@
 from __future__ import annotations
+
 import itertools
 import math
-from typing import Iterable, TYPE_CHECKING, Generator, Tuple
+from typing import Iterable, Generator, Tuple, TYPE_CHECKING
 
-# if TYPE_CHECKING:
+
 from typing import Iterator
-
 from NicksIntervals import util
 from NicksIntervals.Linked_iBound import Linked_iBound
 from NicksIntervals.iBound import iBound, iBound_Negative_Infinity, iBound_Positive_Infinity
-import NicksIntervals.iInterval
 
-iInterval = NicksIntervals.iInterval.iInterval
+if TYPE_CHECKING:
+	from NicksIntervals.iInterval import iInterval
+	
 
 def subtract(a: Iterable[iInterval], b: Iterable[iInterval]) -> Iterable[iInterval]:
 	# TODO: the performance of this algorithm on any multi_interval with many sub intervals is abysmal.

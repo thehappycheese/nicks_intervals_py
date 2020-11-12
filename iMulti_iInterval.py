@@ -13,10 +13,11 @@ from .Linked_iBound import Linked_iBound
 from .iBound import iBound
 from .iBound import iBound_Negative_Infinity
 from .iBound import iBound_Positive_Infinity
-from .non_atomic_super import non_atomic_super
-from NicksIntervals import _operators as ops
+import NicksIntervals.non_atomic_super
+import NicksIntervals._operators as ops
 
-class iMulti_iInterval(non_atomic_super):
+
+class iMulti_iInterval(NicksIntervals.non_atomic_super.non_atomic_super):
 
 	def __init__(self, iter_intervals: Iterable[NicksIntervals.iInterval.iInterval]):
 		self.__intervals: Tuple[NicksIntervals.iInterval.iInterval] = tuple(iter_intervals)

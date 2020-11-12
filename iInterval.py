@@ -11,7 +11,7 @@ from __future__ import annotations
 import itertools
 import math
 from typing import Iterable
-from typing import Tuple
+from typing import Tuple, TYPE_CHECKING
 
 from .Linked_iBound import Linked_iBound
 from .iBound import PART_OF_LEFT
@@ -20,11 +20,13 @@ from .iBound import iBound
 from .iBound import iBound_Negative_Infinity
 from .iBound import iBound_Positive_Infinity
 
-import NicksIntervals.iMulti_iInterval
-from .non_atomic_super import non_atomic_super
+if TYPE_CHECKING:
+	import NicksIntervals.iMulti_iInterval
+
+from . import _operators as ops
 
 
-class iInterval(non_atomic_super):
+class iInterval:
 	"""Immutable Interval based on python's built in floats. Nothing fancy."""
 	
 	@classmethod
@@ -198,3 +200,40 @@ class iInterval(non_atomic_super):
 	
 	def interpolate(self, ratio: float) -> float:
 		return self.__lower_bound.value + (self.__upper_bound.value - self.__lower_bound.value) * ratio
+	
+	def contains_value(self, value: float) -> bool:
+		return ops.contains_value_atomic(self, value)
+	
+	def contains_upper_bound(self, bound: iBound) -> bool:
+		return ops.contains_upper_bound_atomic(self, bound)
+	
+	def contains_lower_bound(self, bound: iBound) -> bool:
+		return ops.contains_lower_bound_atomic(self, bound)
+	
+	def contains_interval(self, other: Iterable[iInterval]) -> bool:
+		return ops.contains_interval(self, other)
+	
+	@property
+	def exterior(self) -> Iterable[iInterval]:
+		return iMulti_iInterval(ops.exterior_atomic(self))
+	
+	def touches(self, other: Iterable[iInterval]) -> bool:
+		return ops.touches(self, other)
+	
+	def intersects(self, other: Iterable[iInterval]) -> bool:
+		return ops.intersects(self, other)
+	
+	def disjoint(self, other: Iterable[iInterval]):
+		return not ops.intersects(self, other)
+	
+	def intersect(self, other: Iterable[iInterval]) -> Iterable[iInterval]:
+		return ops.intersect(self, other)
+	
+	def subtract(self, other: Iterable[iInterval]) -> iMulti_iInterval:
+		return iMulti_iInterval(ops.subtract(self, other))
+	
+	def hull(self, other: Iterable[iInterval]) -> Iterable[iInterval]:
+		return ops.hull(itertools.chain(self, other))
+	
+	def union(self, other: Iterable[iInterval]) -> Iterable[iInterval]:
+		return iMulti_iInterval(itertools.chain(self, other))

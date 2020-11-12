@@ -2,15 +2,14 @@ from __future__ import annotations
 
 import math
 
-from NicksIntervals.iBound import iBound
-from NicksIntervals.iBound import iBound
+import NicksIntervals.iBound
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
 	from NicksIntervals.iInterval import iInterval
 
 
-class Linked_iBound(iBound):
-	def __init__(self, bound: iBound, interval: iInterval, is_lower_bound: bool):
+class Linked_iBound(NicksIntervals.iBound.iBound):
+	def __init__(self, bound: NicksIntervals.iBound.iBound, interval: iInterval, is_lower_bound: bool):
 		"""
 		This class allows intervals to be decomposed into bounds without forgetting where the bound came from and if it was and an upper or lower bound.
 		it should not be instantiated directly, but obtained through an instance of iInterval by calling:
@@ -18,7 +17,7 @@ class Linked_iBound(iBound):
 		"""
 		super().__init__(bound.value, bound.part_of_left)
 		self.__interval: iInterval = interval
-		self.__bound: iBound = bound
+		self.__bound: NicksIntervals.iBound.iBound = bound
 		self.__is_lower_bound = is_lower_bound
 	
 	def __format__(self, format_spec):
