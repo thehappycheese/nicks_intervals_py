@@ -36,12 +36,12 @@ def test_iInterval_init_degenerate_must_be_closed():
 
 def test_iInterval_init_infinitesimal():
 	with pytest.raises(Exception):
-		assert iInterval.closed(1, 1.000000000000000001).is_infinitesimal
+		assert iInterval.closed(1, 1.000000000000000001).has_infinitesimal
 
 
 def test_iInterval_degenerate_constructor():
 	m = iInterval.degenerate(0)
-	assert m.is_degenerate is True
+	assert m.has_degenerate is True
 	with pytest.raises(Exception):
 		iInterval.degenerate(float('-inf'))
 	with pytest.raises(Exception):

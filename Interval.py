@@ -477,7 +477,7 @@ class Multi_Interval:
 		return self
 	
 	def delete_infinitesimal(self) -> Multi_Interval:
-		self.intervals = [item for item in self.intervals if not item.is_infinitesimal]
+		self.intervals = [item for item in self.intervals if not item.has_infinitesimal]
 		return self
 	
 	def make_all_positive(self):

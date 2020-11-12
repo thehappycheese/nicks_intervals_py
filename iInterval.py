@@ -24,6 +24,7 @@ if TYPE_CHECKING:
 	import NicksIntervals.iMulti_iInterval
 
 from . import _operators as ops
+from .iMulti_iInterval import iMulti_iInterval
 
 
 class iInterval:
@@ -88,20 +89,11 @@ class iInterval:
 		self.__lower_bound: iBound = lower_bound
 		self.__upper_bound: iBound = upper_bound
 		
-		self.__is_infinitesimal: bool = False
-		self.__is_degenerate: bool = False
-		
 		if lower_bound.value == upper_bound.value:
-			if self.__lower_bound.part_of_right and self.__upper_bound.part_of_left:
-				self.__is_degenerate = True
-			else:
+			if not(self.__lower_bound.part_of_right and self.__upper_bound.part_of_left):
 				raise Exception(f"Degenerate intervals (lower_bound==upper_bound) are only permitted when both bounds are closed.")
 		elif math.isclose(lower_bound.value, upper_bound.value):
-			self.__is_infinitesimal = True
-			# TODO: emit warning? infinitesimal intervals will cause havoc with other algorithms
-			#  im really on the fence about this one. i think i need to do more research about precision models
-			#  ima raise an exception here until i have a better idea.
-			raise Exception(f"Infinitesimal intervals are not cool: {lower_bound} <= {upper_bound} == {lower_bound<=upper_bound}")
+			raise Exception(f"Infinitesimal intervals are not cool: {lower_bound} <= {upper_bound} == {lower_bound<=upper_bound} they must be eliminated in user code to avoid weird bugs in this interval library. use math.isclose() to test if the bounds are close. then either discard them, or make the bounds exactly equal to each other. Note that Degenerate intervals (lower_bound==upper_bound) are only permitted when both bounds are closed.")
 		elif lower_bound.value > upper_bound.value:
 			raise Exception(f"reversed intervals are not permitted. lower_bound.value must be less than or equal to upper_bound.value: {lower_bound} <= {upper_bound} == {lower_bound.value<=upper_bound.value}")
 		
@@ -131,6 +123,15 @@ class iInterval:
 	
 	def __iter__(self):
 		return iter((self,))
+	
+	def __len__(self):
+		return 1
+	
+	def __getitem__(self, item):
+		if item == 0:
+			return self
+		else:
+			raise IndexError()
 	
 	def __bool__(self):
 		return True
@@ -172,26 +173,19 @@ class iInterval:
 	def upper_bound(self) -> iBound:
 		return self.__upper_bound
 	
-	def get_linked_bounds(self) -> Tuple[Linked_iBound, Linked_iBound]:
-		return (
-			self.__lower_bound.get_Linked_iBound(linked_interval=self, is_lower_bound=True),
-			self.__upper_bound.get_Linked_iBound(linked_interval=self, is_lower_bound=False)
-		)
-	
-	def get_linked_interval(self):
-		# TODO: linked interval?
-		pass
+	def get_linked_bounds(self) -> Iterable[Linked_iBound]:
+		return ops.get_linked_bounds(self)
 	
 	@property
-	def is_degenerate(self) -> bool:
-		return self.__is_degenerate
-	
-	@property
-	def is_infinitesimal(self) -> bool:
-		return self.__is_infinitesimal
+	def has_degenerate(self) -> bool:
+		return ops.has_degenerate(self)
 	
 	@property
 	def is_complete(self) -> bool:
+		bounds = sorted(ops.get_linked_bounds(self))
+		if len(bounds) < 2:
+			return False
+		return first
 		return self.__lower_bound.value == float('-inf') and self.__upper_bound.value == float('inf')
 	
 	@ property

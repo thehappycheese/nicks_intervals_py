@@ -133,10 +133,10 @@ class iMulti_iInterval:
 		)
 	
 	def without_infinitesimal(self) -> iMulti_iInterval:
-		return iMulti_iInterval(interval for interval in self.__intervals if not interval.is_infinitesimal)
+		return iMulti_iInterval(interval for interval in self.__intervals if not interval.has_infinitesimal)
 	
 	def has_infinitesimal(self):
-		return any(interval.is_infinitesimal for interval in self.__intervals)  # I learned generator expressions :O
+		return any(interval.has_infinitesimal for interval in self.__intervals)  # the moment I learned generator expressions can be used without constructing a list or tuple :O
 	
 	def contains_value(self, value: float) -> bool:
 		return ops.contains_value_atomic(self, value)
