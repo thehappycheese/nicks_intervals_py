@@ -3,7 +3,9 @@ from __future__ import annotations
 import math
 
 import NicksIntervals.iBound
+
 from typing import TYPE_CHECKING
+
 if TYPE_CHECKING:
 	from NicksIntervals.iInterval import iInterval
 

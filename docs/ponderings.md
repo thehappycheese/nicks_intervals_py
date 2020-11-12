@@ -98,7 +98,7 @@ m.exterior === tuple(m.left_exterior, m.right_exterior)
 
 Any pair of bounds can completly define an Interval object. An ordered list of bounds defines a segmentation of the real number line into interval objects. This is illustrated below where 5 bounds define 4 intervals which completely cover the Real Number line:
 
->![Image](/img/02_numbered_hero.svg)
+>![Image](img/02_numbered_hero.svg)
 
 ### List[iBounds] is a strict 1:1 mapping
 Because iBounds must be PART_OF_LEFT or PART_OF_RIGHT, they cannot be _'part of both'_ intervals, or _'part of neither'_. The effect of this restriction is that, for a `sorted(List[iBound])`;
@@ -147,7 +147,7 @@ If X is 'isclose' to the bound and the bound is closed, X is part of the interva
 otherwise the result is determined by the expression
 'lower_bound<X<upper_bound'
 
-## Test if an Interval Interval Contains Interval
+## Test if an Interval Contains an Interval
 
 
 ```python
@@ -170,4 +170,4 @@ Truth Table
 
 Visualised:
 
-![bla](/img/03_contains_lower_upper_bounds.svg)
+![bla](img/03_contains_lower_upper_bounds.svg)

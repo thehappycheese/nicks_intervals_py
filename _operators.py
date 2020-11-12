@@ -173,31 +173,31 @@ def contains_interval_atomic(a: iInterval, b: iInterval) -> bool:
 	if a.is_degenerate and b.is_degenerate and math.isclose(a.lower_bound.value, b.lower_bound.value):
 		return True
 	else:
-		return contains_lower_bound_atomic(a, b.lower_bound) and contains_lower_bound_atomic(a, b.upper_bound)
+		return contains_lower_bound_atomic(a, b.lower_bound) and contains_upper_bound_atomic(a, b.upper_bound)
 
 
-def contains_upper_bound_atomic(a: iInterval, bound: iBound) -> bool:
-	if a.is_degenerate and math.isclose(a.lower_bound.value, bound.value):
-		return bound.part_of_left
+def contains_upper_bound_atomic(a: iInterval, upper_bound: iBound) -> bool:
+	if a.is_degenerate and math.isclose(a.lower_bound.value, upper_bound.value):
+		return upper_bound.part_of_left
 	else:
-		if math.isclose(a.lower_bound.value, bound.value):
-			return a.lower_bound.part_of_right and bound.part_of_left
-		if math.isclose(a.upper_bound.value, bound.value):
-			return not (a.upper_bound.part_of_right and bound.part_of_left)
-		elif a.lower_bound < bound < a.upper_bound:
+		if math.isclose(a.lower_bound.value, upper_bound.value):
+			return a.lower_bound.part_of_right and upper_bound.part_of_left
+		if math.isclose(a.upper_bound.value, upper_bound.value):
+			return not (a.upper_bound.part_of_right and upper_bound.part_of_left)
+		elif a.lower_bound < upper_bound < a.upper_bound:
 			return True
 	return False
 
 
-def contains_lower_bound_atomic(a: iInterval, bound: iBound) -> bool:
-	if a.is_degenerate and math.isclose(a.upper_bound.value, bound.value):
-		return bound.part_of_right
+def contains_lower_bound_atomic(a: iInterval, lower_bound: iBound) -> bool:
+	if a.is_degenerate and math.isclose(a.upper_bound.value, lower_bound.value):
+		return lower_bound.part_of_right
 	else:
-		if math.isclose(a.lower_bound.value, bound.value):
-			return not (a.lower_bound.part_of_left and bound.part_of_right)
-		if math.isclose(a.upper_bound.value, bound.value):
-			return a.upper_bound.part_of_left and bound.part_of_right
-		if a.lower_bound < bound < a.upper_bound:
+		if math.isclose(a.lower_bound.value, lower_bound.value):
+			return not (a.lower_bound.part_of_left and lower_bound.part_of_right)
+		if math.isclose(a.upper_bound.value, lower_bound.value):
+			return a.upper_bound.part_of_left and lower_bound.part_of_right
+		if a.lower_bound < lower_bound < a.upper_bound:
 			return True
 	return False
 

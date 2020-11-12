@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import itertools
-from typing import Generator
+from typing import Generator, TYPE_CHECKING
 from typing import Iterable
 from typing import Iterator
 from typing import Tuple
@@ -13,11 +13,13 @@ from .Linked_iBound import Linked_iBound
 from .iBound import iBound
 from .iBound import iBound_Negative_Infinity
 from .iBound import iBound_Positive_Infinity
-import NicksIntervals.non_atomic_super
-import NicksIntervals._operators as ops
+from . import _operators as ops
+
+if TYPE_CHECKING:
+	from .iInterval import iInterval
 
 
-class iMulti_iInterval(NicksIntervals.non_atomic_super.non_atomic_super):
+class iMulti_iInterval:
 
 	def __init__(self, iter_intervals: Iterable[NicksIntervals.iInterval.iInterval]):
 		self.__intervals: Tuple[NicksIntervals.iInterval.iInterval] = tuple(iter_intervals)
@@ -135,3 +137,40 @@ class iMulti_iInterval(NicksIntervals.non_atomic_super.non_atomic_super):
 	
 	def has_infinitesimal(self):
 		return any(interval.is_infinitesimal for interval in self.__intervals)  # I learned generator expressions :O
+	
+	def contains_value(self, value: float) -> bool:
+		return ops.contains_value_atomic(self, value)
+	
+	def contains_upper_bound(self, bound: iBound) -> bool:
+		return ops.contains_upper_bound_atomic(self, bound)
+	
+	def contains_lower_bound(self, bound: iBound) -> bool:
+		return ops.contains_lower_bound_atomic(self, bound)
+	
+	def contains_interval(self, other: Iterable[iInterval]) -> bool:
+		return ops.contains_interval(self, other)
+	
+	@property
+	def exterior(self) -> Iterable[iInterval]:
+		return iMulti_iInterval(ops.exterior_atomic(self))
+	
+	def touches(self, other: Iterable[iInterval]) -> bool:
+		return ops.touches(self, other)
+	
+	def intersects(self, other: Iterable[iInterval]) -> bool:
+		return ops.intersects(self, other)
+	
+	def disjoint(self, other: Iterable[iInterval]):
+		return not ops.intersects(self, other)
+	
+	def intersect(self, other: Iterable[iInterval]) -> Iterable[iInterval]:
+		return ops.intersect(self, other)
+	
+	def subtract(self, other: Iterable[iInterval]) -> iMulti_iInterval:
+		return iMulti_iInterval(ops.subtract(self, other))
+	
+	def hull(self, other: Iterable[iInterval]) -> Iterable[iInterval]:
+		return ops.hull(itertools.chain(self, other))
+	
+	def union(self, other: Iterable[iInterval]) -> Iterable[iInterval]:
+		return iMulti_iInterval(itertools.chain(self, other))
