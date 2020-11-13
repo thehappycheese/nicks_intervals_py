@@ -29,14 +29,17 @@ class iBound:
 		if not isinstance(part_of_left, bool):
 			raise TypeError(f"Unexpected argument type iBound(...,part_of_left=bool) where part_of_left='{part_of_left}'")
 		
-		if self == float("-inf") and self.part_of_left:
+		if self.__value == float("-inf") and self.part_of_left:
 			raise Exception("Bounds at -inf must be included_in_right")
 		
-		elif self == float("inf") and self.part_of_right:
+		elif self.__value == float("inf") and self.part_of_right:
 			raise Exception("Bounds at inf must be included_in_left")
 	
 	def __eq__(self, other):
 		if isinstance(other, (float, int)):
+			# TODO: is this case ever used? I think it should not be. It prevents use of == to confirm if two bound objects are equal but not necessarily the same object.
+			#  Tests are passed without triggering this error. Dead code?
+			raise Exception("Cannot compare iBound to float.")
 			return self.__value == other
 		elif isinstance(other, iBound):
 			return math.isclose(self.__value, other.__value) and self.__part_of_left == other.__part_of_left

@@ -2,6 +2,7 @@ import pytest
 
 from NicksIntervals.iBound import iBound, PART_OF_LEFT, PART_OF_RIGHT
 from NicksIntervals.iInterval import iInterval
+import NicksIntervals._operators as ops
 
 
 def test_iInterval_contains_value():
@@ -35,28 +36,28 @@ def test_iInterval_contains_bound():
 	upper_right	= iBound(2, PART_OF_RIGHT)
 	
 	# Open Upper Contains
-	assert interval_open.contains_upper_bound(upper_right) is True
-	assert interval_open.contains_upper_bound(upper_left) is False
-	assert interval_open.contains_lower_bound(upper_left) is False
-	assert interval_open.contains_lower_bound(upper_right) is False
+	assert ops.contains_upper_bound_atomic(interval_open, upper_right) is True
+	assert ops.contains_upper_bound_atomic(interval_open, upper_left) is False
+	assert ops.contains_lower_bound_atomic(interval_open, upper_left) is False
+	assert ops.contains_lower_bound_atomic(interval_open, upper_right) is False
 	
 	# Open Lower Contains
-	assert interval_open.contains_upper_bound(lower_right) is False
-	assert interval_open.contains_upper_bound(lower_left) is False
-	assert interval_open.contains_lower_bound(lower_left) is True
-	assert interval_open.contains_lower_bound(lower_right) is False
+	assert ops.contains_upper_bound_atomic(interval_open, lower_right) is False
+	assert ops.contains_upper_bound_atomic(interval_open, lower_left) is False
+	assert ops.contains_lower_bound_atomic(interval_open, lower_left) is True
+	assert ops.contains_lower_bound_atomic(interval_open, lower_right) is False
 	
 	# Closed Upper Contains
-	assert interval_closed.contains_upper_bound(upper_right) is True
-	assert interval_closed.contains_upper_bound(upper_left) is True
-	assert interval_closed.contains_lower_bound(upper_left) is False
-	assert interval_closed.contains_lower_bound(upper_right) is True
+	assert ops.contains_upper_bound_atomic(interval_closed, upper_right) is True
+	assert ops.contains_upper_bound_atomic(interval_closed, upper_left) is True
+	assert ops.contains_lower_bound_atomic(interval_closed, upper_left) is False
+	assert ops.contains_lower_bound_atomic(interval_closed, upper_right) is True
 	
 	# Closed Lower Contains
-	assert interval_closed.contains_upper_bound(lower_right) is False
-	assert interval_closed.contains_upper_bound(lower_left) is True
-	assert interval_closed.contains_lower_bound(lower_left) is True
-	assert interval_closed.contains_lower_bound(lower_right) is True
+	assert ops.contains_upper_bound_atomic(interval_closed, lower_right) is False
+	assert ops.contains_upper_bound_atomic(interval_closed, lower_left) is True
+	assert ops.contains_lower_bound_atomic(interval_closed, lower_left) is True
+	assert ops.contains_lower_bound_atomic(interval_closed, lower_right) is True
 
 
 def test_iInterval_contains_interval():

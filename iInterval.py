@@ -10,8 +10,7 @@ from __future__ import annotations
 
 import itertools
 import math
-from typing import Iterable
-from typing import Tuple, TYPE_CHECKING
+from typing import Collection, TYPE_CHECKING
 
 from .Linked_iBound import Linked_iBound
 from .iBound import PART_OF_LEFT
@@ -20,11 +19,9 @@ from .iBound import iBound
 from .iBound import iBound_Negative_Infinity
 from .iBound import iBound_Positive_Infinity
 
+import NicksIntervals._operators as ops
 if TYPE_CHECKING:
-	import NicksIntervals.iMulti_iInterval
-
-from . import _operators as ops
-from .iMulti_iInterval import iMulti_iInterval
+	from .iMulti_iInterval import iMulti_iInterval
 
 
 class iInterval:
@@ -32,7 +29,7 @@ class iInterval:
 	
 	@classmethod
 	def complete(cls):
-		"""returns an interval spaning the complete real number line. Or at least all representable python floats."""
+		"""returns an interval spanning the complete real number line. Or at least all representable python floats."""
 		return iInterval(lower_bound=iBound_Negative_Infinity, upper_bound=iBound_Positive_Infinity)
 	
 	@classmethod
@@ -79,8 +76,9 @@ class iInterval:
 	
 	@classmethod
 	def empty(cls):
-		"""returns a null or non-interval which is still of the type Iterable[iInterval] but will yield no items"""
-		return NicksIntervals.iMulti_iInterval.iMulti_iInterval([])
+		"""returns a null or non-interval which is still of the type Collection[iInterval] but will yield no items"""
+		from .iMulti_iInterval import iMulti_iInterval
+		return iMulti_iInterval([])
 	
 	def __init__(self, lower_bound: iBound, upper_bound: iBound):
 		if not (isinstance(lower_bound, iBound) and isinstance(upper_bound, iBound)):
@@ -119,7 +117,7 @@ class iInterval:
 		return f"{char_left}, {char_right}"
 		
 	def __repr__(self):
-		return format(self, ".3f")
+		return format(self, ".2f")
 	
 	def __iter__(self):
 		return iter((self,))
@@ -127,14 +125,14 @@ class iInterval:
 	def __len__(self):
 		return 1
 	
-	def __getitem__(self, item):
-		if item == 0:
-			return self
-		else:
-			raise IndexError()
-	
 	def __bool__(self):
 		return True
+	
+	def __contains__(self, item):
+		return self == item
+	
+	def __eq__(self, other):
+		return ops.eq(self, other)
 	
 	def print(self):
 		"""
@@ -173,7 +171,7 @@ class iInterval:
 	def upper_bound(self) -> iBound:
 		return self.__upper_bound
 	
-	def get_linked_bounds(self) -> Iterable[Linked_iBound]:
+	def get_linked_bounds(self) -> Collection[Linked_iBound]:
 		return ops.get_linked_bounds(self)
 	
 	@property
@@ -182,11 +180,7 @@ class iInterval:
 	
 	@property
 	def is_complete(self) -> bool:
-		bounds = sorted(ops.get_linked_bounds(self))
-		if len(bounds) < 2:
-			return False
-		return first
-		return self.__lower_bound.value == float('-inf') and self.__upper_bound.value == float('inf')
+		return ops.is_complete(self)
 	
 	@ property
 	def length(self) -> float:
@@ -196,38 +190,36 @@ class iInterval:
 		return self.__lower_bound.value + (self.__upper_bound.value - self.__lower_bound.value) * ratio
 	
 	def contains_value(self, value: float) -> bool:
-		return ops.contains_value_atomic(self, value)
+		return ops.contains_value(self, value)
 	
-	def contains_upper_bound(self, bound: iBound) -> bool:
-		return ops.contains_upper_bound_atomic(self, bound)
-	
-	def contains_lower_bound(self, bound: iBound) -> bool:
-		return ops.contains_lower_bound_atomic(self, bound)
-	
-	def contains_interval(self, other: Iterable[iInterval]) -> bool:
+	def contains_interval(self, other: Collection[iInterval]) -> bool:
 		return ops.contains_interval(self, other)
 	
-	@property
-	def exterior(self) -> Iterable[iInterval]:
-		return iMulti_iInterval(ops.exterior_atomic(self))
-	
-	def touches(self, other: Iterable[iInterval]) -> bool:
+	def touches(self, other: Collection[iInterval]) -> bool:
 		return ops.touches(self, other)
 	
-	def intersects(self, other: Iterable[iInterval]) -> bool:
+	def intersects(self, other: Collection[iInterval]) -> bool:
 		return ops.intersects(self, other)
 	
-	def disjoint(self, other: Iterable[iInterval]):
+	def disjoint(self, other: Collection[iInterval]) -> bool:
 		return not ops.intersects(self, other)
 	
-	def intersect(self, other: Iterable[iInterval]) -> Iterable[iInterval]:
-		return ops.intersect(self, other)
+	@property
+	def exterior(self) -> Collection[iInterval]:
+		return ops.coerce_iInterval_collection(ops.exterior(self))
 	
-	def subtract(self, other: Iterable[iInterval]) -> iMulti_iInterval:
-		return iMulti_iInterval(ops.subtract(self, other))
+	@property
+	def interior(self) -> Collection[iInterval]:
+		return ops.coerce_iInterval_collection(ops.interior(self))
 	
-	def hull(self, other: Iterable[iInterval]) -> Iterable[iInterval]:
-		return ops.hull(itertools.chain(self, other))
+	def intersect(self, other: Collection[iInterval]) -> Collection[iInterval]:
+		return ops.coerce_iInterval_collection(ops.intersect(self, other))
 	
-	def union(self, other: Iterable[iInterval]) -> Iterable[iInterval]:
-		return iMulti_iInterval(itertools.chain(self, other))
+	def subtract(self, other: Collection[iInterval]) -> iMulti_iInterval:
+		return ops.coerce_iInterval_collection(ops.subtract(self, other))
+	
+	def hull(self, other: Collection[iInterval]) -> Collection[iInterval]:
+		return ops.coerce_iInterval_collection(ops.hull(itertools.chain(self, other)))
+	
+	def union(self, other: Collection[iInterval]) -> Collection[iInterval]:
+		return ops.coerce_iInterval_collection([*itertools.chain(self, other)])
