@@ -2,12 +2,14 @@ from __future__ import annotations
 
 import itertools
 import math
+from typing import Any
 from typing import Generator, Tuple, TYPE_CHECKING, List, Sized, Collection, Union, Iterable
 
 from typing import Iterator
 from NicksIntervals import util
 from NicksIntervals.Linked_iBound import Linked_iBound
 from NicksIntervals.iBound import iBound, iBound_Negative_Infinity, iBound_Positive_Infinity
+from NicksIntervals.Linked_iInterval import Linked_iInterval
 
 if TYPE_CHECKING:
 	from NicksIntervals.iInterval import iInterval
@@ -33,7 +35,7 @@ def has_degenerate(a: Collection[iInterval]):
 	return any(is_degenerate_atomic(a_interval) for a_interval in a)
 
 
-def get_bounds(a: Collection[iInterval]) -> List[iBound]:
+def get_bounds(a: Iterable[iInterval]) -> List[iBound]:
 	return list(
 		itertools.chain.from_iterable([
 			a_interval.lower_bound,
@@ -41,12 +43,16 @@ def get_bounds(a: Collection[iInterval]) -> List[iBound]:
 			] for a_interval in a))
 
 
-def get_linked_bounds(a: Collection[iInterval]) -> List[Linked_iBound]:
+def get_linked_bounds(a: Iterable[iInterval]) -> List[Linked_iBound]:
 	return list(
 		itertools.chain.from_iterable((
 			a_interval.lower_bound.get_Linked_iBound(linked_interval=a_interval, is_lower_bound=True),
 			a_interval.upper_bound.get_Linked_iBound(linked_interval=a_interval, is_lower_bound=False
 		)) for a_interval in a))
+
+
+def get_linked_intervals(a: Iterable[iInterval], link_object: Any) -> Iterable[iInterval]:
+	return list(Linked_iInterval(a_interval, link_object) for a_interval in a)
 
 
 def is_complete(a: Collection[iInterval]) -> bool:
@@ -72,6 +78,26 @@ def subtract(a: Collection[iInterval], b: Collection[iInterval]) -> Collection[i
 		result = list(itertools.chain.from_iterable(subtract_atomic(interval_a, interval_b) for interval_a in result))
 	
 	return result
+
+raise Exception("from here:")
+def subtract_linear(a: Collection[iInterval], b: Collection[iInterval]) -> Collection[iInterval]:
+	result: Collection[iInterval] = a
+	link_a = {}
+	link_b = {}
+	
+	link_bounds = sorted(itertools.chain(get_linked_bounds(get_linked_intervals(a, link_a)), get_linked_bounds(get_linked_intervals(b, link_b))))
+	for prev, curr, next in util.iter_previous_and_next(link_bounds):
+		
+		sorted_linked_bounds = sorted(itertools.chain.from_iterable(get_linked_bounds(a_interval) for a_interval in a))
+		stack_count_before = 0
+		stack_count_after = 0
+		for previous_bound, current_bound, next_bound in util.iter_previous_and_next(sorted_linked_bounds):
+			if current_bound.is_lower_bound:
+				stack_count_after += 1
+			else:
+				stack_count_after -= 1
+			yield stack_count_before, current_bound, stack_count_after
+			stack_count_before = stack_count_after
 
 
 def subtract_atomic(a: iInterval, b: iInterval) -> Collection[iInterval]:

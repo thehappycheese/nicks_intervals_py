@@ -1,8 +1,11 @@
 from __future__ import annotations
 
-from typing import Iterable, Collection
+import itertools
+from typing import Iterable, Collection, TYPE_CHECKING
 
 import NicksIntervals.iInterval
+# if TYPE_CHECKING:
+import NicksIntervals.iBound
 
 
 class iMulti_iInterval(NicksIntervals.iInterval.iInterval):
@@ -34,10 +37,13 @@ class iMulti_iInterval(NicksIntervals.iInterval.iInterval):
 	
 	@property
 	def upper_bound(self) -> NicksIntervals.iBound.iBound:
-		raise Exception("Should not be called internally")
+		# raise Exception("Should not be called internally")
 		return max(bound.bound for bound in itertools.chain.from_iterable(interval.get_linked_bounds() for interval in self.__intervals))
 	
 	@property
 	def lower_bound(self) -> NicksIntervals.iBound.iBound:
-		raise Exception("Should not be called internally")
+		# raise Exception("Should not be called internally")
 		return min(bound.bound for bound in itertools.chain.from_iterable(interval.get_linked_bounds() for interval in self.__intervals))
+
+	def interior_merged(self):
+		return NicksIntervals.iInterval.ops.coerce_iInterval_collection(NicksIntervals.iInterval.ops.interior_merged(self))
