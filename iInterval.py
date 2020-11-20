@@ -10,10 +10,9 @@ from __future__ import annotations
 
 import itertools
 import math
-from typing import Collection, TYPE_CHECKING
+from typing import Collection, TYPE_CHECKING, Any
 
-from .Linked_iBound import Linked_iBound
-from .iBound import PART_OF_LEFT
+from .iBound import PART_OF_LEFT, Linked_iBound
 from .iBound import PART_OF_RIGHT
 from .iBound import iBound
 from .iBound import iBound_Negative_Infinity
@@ -223,3 +222,21 @@ class iInterval:
 	
 	def union(self, other: Collection[iInterval]) -> Collection[iInterval]:
 		return ops.coerce_iInterval_collection([*itertools.chain(self, other)])
+	
+	def scaled(self, scale_factor: float):
+		return ops.coerce_iInterval_collection(ops.scaled(self, scale_factor))
+	
+	def translated(self, translation: float):
+		return ops.coerce_iInterval_collection(ops.translated(self, translation))
+	
+	def scaled_then_translated(self, scale_factor: float, translation: float):
+		return ops.coerce_iInterval_collection(ops.scaled_then_translated(self, scale_factor, translation))
+	
+	def translated_then_scaled(self, translation: float, scale_factor: float):
+		return ops.coerce_iInterval_collection(ops.translated_then_scaled(self, translation, scale_factor))
+
+class Linked_iInterval(iInterval):
+	def __init__(self, original_iInterval: iInterval, linked_object: Any):
+		self.original_iInterval = original_iInterval
+		self.linked_object = linked_object
+		super().__init__(original_iInterval.lower_bound, original_iInterval.upper_bound)

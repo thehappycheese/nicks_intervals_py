@@ -7,9 +7,8 @@ from typing import Generator, Tuple, TYPE_CHECKING, List, Sized, Collection, Uni
 
 from typing import Iterator
 from NicksIntervals import util
-from NicksIntervals.Linked_iBound import Linked_iBound
-from NicksIntervals.iBound import iBound, iBound_Negative_Infinity, iBound_Positive_Infinity
-from NicksIntervals.Linked_iInterval import Linked_iInterval
+from NicksIntervals.iBound import iBound, iBound_Negative_Infinity, iBound_Positive_Infinity, Linked_iBound
+
 
 if TYPE_CHECKING:
 	from NicksIntervals.iInterval import iInterval
@@ -22,6 +21,54 @@ if TYPE_CHECKING:
 # 	@property
 # 	def lower_bound(self) -> iBound:
 # 		return self.__upper_bound
+
+
+def scaled(a: Iterable[iInterval], scale_factor: float) -> Collection[iInterval]:
+	from .iInterval import iInterval
+	return [iInterval(a_interval.lower_bound.scaled(scale_factor), a_interval.upper_bound.scaled(scale_factor)) for a_interval in a]
+
+
+def translated(a: Iterable[iInterval], translation: float) -> Collection[iInterval]:
+	from .iInterval import iInterval
+	return [iInterval(a_interval.lower_bound.translated(translation), a_interval.upper_bound.translated(translation)) for a_interval in a]
+
+
+def scaled_then_translated(a: Iterable[iInterval], scale_factor: float, translation: float):
+	from .iInterval import iInterval
+	return [iInterval(a_interval.lower_bound.scaled_then_translated(scale_factor, translation), a_interval.upper_bound.scaled_then_translated(scale_factor, translation)) for a_interval in a]
+
+
+def translated_then_scaled(a: Iterable[iInterval], translation: float, scale_factor: float):
+	from .iInterval import iInterval
+	return [iInterval(a_interval.lower_bound.translated_then_scaled(translation, scale_factor), a_interval.upper_bound.translated_then_scaled(translation, scale_factor)) for a_interval in a]
+
+
+def apply_interval_map(map_from: iInterval, map_to: iInterval, a: Iterable[iInterval]) -> Collection[iInterval]:
+	result = []
+	for a_interval in a:
+		scale_factor = map_to.length / map_from.length
+		result.extend(
+			intersect(
+				scaled_then_translated(
+					translated(
+						intersect(map_from, a_interval),
+						-map_from.lower_bound.value
+					),
+					scale_factor,
+					map_to.lower_bound.value
+				),
+				map_to
+			)
+		)
+	return result
+
+
+def apply_interval_maps(maps: Iterable[Tuple[iInterval, iInterval]], a: Iterable[iInterval]) -> Collection[iInterval]:
+	result = []
+	for a_interval in a:
+		for map_from, map_to in maps:
+			result.extend(apply_interval_map(map_from, map_to, a_interval))
+	return result
 
 
 def is_degenerate_atomic(a: iInterval):
@@ -52,6 +99,7 @@ def get_linked_bounds(a: Iterable[iInterval]) -> List[Linked_iBound]:
 
 
 def get_linked_intervals(a: Iterable[iInterval], link_object: Any) -> Iterable[iInterval]:
+	from NicksIntervals.iInterval import Linked_iInterval
 	return list(Linked_iInterval(a_interval, link_object) for a_interval in a)
 
 
@@ -79,8 +127,9 @@ def subtract(a: Collection[iInterval], b: Collection[iInterval]) -> Collection[i
 	
 	return result
 
-raise Exception("from here:")
+
 def subtract_linear(a: Collection[iInterval], b: Collection[iInterval]) -> Collection[iInterval]:
+	raise Exception("from here:")
 	result: Collection[iInterval] = a
 	link_a = {}
 	link_b = {}
@@ -429,3 +478,8 @@ def eq(a: Collection[iInterval], b: Collection[iInterval]) -> bool:
 	else:
 		return False
 	return len(b_intervals) == 0
+
+
+
+	
+	
