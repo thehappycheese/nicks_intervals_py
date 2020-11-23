@@ -1,8 +1,9 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Union
+
 if TYPE_CHECKING:
-	from NicksIntervals.iInterval import iInterval
+	from NicksIntervals.iInterval import iInterval, Linked_iInterval
 import math
 
 
@@ -42,24 +43,18 @@ class iBound:
 		return NotImplemented
 	
 	def __gt__(self, other):
-		if isinstance(other, (float, int)):
-			raise Exception("should not be used")
-			return self.__value > other
-		elif isinstance(other, iBound):
+		if isinstance(other, iBound):
 			if math.isclose(self.__value, other.__value):
 				return self.part_of_left and other.part_of_right
-			else:
-				return self.__value > other.__value
+			return self.__value > other.__value
+		return NotImplemented
 		
 	def __lt__(self, other):
-		if isinstance(other, (float, int)):
-			raise Exception("should not be used")
-			return self.__value < other
-		elif isinstance(other, iBound):
+		if isinstance(other, iBound):
 			if math.isclose(self.__value, other.__value):
 				return self.part_of_right and other.part_of_left
-			else:
-				return self.__value < other.__value
+			return self.__value < other.__value
+		return NotImplemented
 	
 	def scaled(self, scale_factor: float) -> iBound:
 		return iBound(self.__value*scale_factor, self.__part_of_left)
@@ -115,7 +110,7 @@ class Linked_iBound(iBound):
 		>>>iInterval(...).get_linked_bounds()
 		"""
 		super().__init__(bound.value, bound.part_of_left)
-		self.__interval: iInterval = interval
+		self.__interval: Union[iInterval, Linked_iInterval] = interval
 		self.__bound: iBound = bound
 		self.__is_lower_bound = is_lower_bound
 	

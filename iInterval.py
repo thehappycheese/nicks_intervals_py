@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import itertools
 import math
-from typing import Collection, TYPE_CHECKING, Any
+from typing import Collection, TYPE_CHECKING, Any, Iterable
 
 from .iBound import PART_OF_LEFT, Linked_iBound
 from .iBound import PART_OF_RIGHT
@@ -217,10 +217,10 @@ class iInterval:
 	def subtract(self, other: Collection[iInterval]) -> iMulti_iInterval:
 		return ops.coerce_iInterval_collection(ops.subtract(self, other))
 	
-	def hull(self, other: Collection[iInterval]) -> Collection[iInterval]:
+	def hull(self, other: Iterable[iInterval] = tuple()) -> Collection[iInterval]:
 		return ops.coerce_iInterval_collection(ops.hull(itertools.chain(self, other)))
 	
-	def union(self, other: Collection[iInterval]) -> Collection[iInterval]:
+	def union(self, other: Iterable[iInterval]) -> Collection[iInterval]:
 		return ops.coerce_iInterval_collection([*itertools.chain(self, other)])
 	
 	def scaled(self, scale_factor: float):
@@ -234,6 +234,10 @@ class iInterval:
 	
 	def translated_then_scaled(self, translation: float, scale_factor: float):
 		return ops.coerce_iInterval_collection(ops.translated_then_scaled(self, translation, scale_factor))
+	
+	def add_merge(self, other: Iterable[iInterval]):
+		return ops.coerce_iInterval_collection(ops.add_merge(self, other))
+
 
 class Linked_iInterval(iInterval):
 	def __init__(self, original_iInterval: iInterval, linked_object: Any):

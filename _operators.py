@@ -12,6 +12,7 @@ from NicksIntervals.iBound import iBound, iBound_Negative_Infinity, iBound_Posit
 
 if TYPE_CHECKING:
 	from NicksIntervals.iInterval import iInterval
+	from NicksIntervals.iInterval import Linked_iInterval
 	from NicksIntervals.iMulti_iInterval import iMulti_iInterval
 
 # class iInterval(abc_Collection):
@@ -71,9 +72,10 @@ def apply_interval_maps(maps: Iterable[Tuple[iInterval, iInterval]], a: Iterable
 	return result
 
 
+# TODO: The term 'degenerate' is a bit ambiguous. Is it preferable to change all code to use iInterval.length == 0? This is easier to understand at a glance.
 def is_degenerate_atomic(a: iInterval):
 	if a.lower_bound.value == a.upper_bound.value:
-		if a.lower_bound.part_of_right and a.upper_bound.part_of_left:
+		if a.lower_bound.part_of_right and a.upper_bound.part_of_left:  # TODO: it is impossible to construct an interval that does not meet condition, if the above condition is met. This check is redundant
 			return True
 	return False
 
@@ -98,7 +100,7 @@ def get_linked_bounds(a: Iterable[iInterval]) -> List[Linked_iBound]:
 		)) for a_interval in a))
 
 
-def get_linked_intervals(a: Iterable[iInterval], link_object: Any) -> Iterable[iInterval]:
+def get_linked_intervals(a: Iterable[iInterval], link_object: Any) -> Iterable[Linked_iInterval]:
 	from NicksIntervals.iInterval import Linked_iInterval
 	return list(Linked_iInterval(a_interval, link_object) for a_interval in a)
 
@@ -114,10 +116,10 @@ def is_empty(a: Sized[iInterval]):
 	return len(a) == 0
 
 
-def subtract(a: Collection[iInterval], b: Collection[iInterval]) -> Collection[iInterval]:
+def subtract(a: Iterable[iInterval], b: Iterable[iInterval]) -> Collection[iInterval]:
 	# TODO: the performance of this algorithm on any multi_interval with many sub intervals is abysmal.
 	#  must be reimplemented as a line-sweep for decent performance.
-	result: Collection[iInterval] = a
+	result = a
 	
 	for interval_b in b:
 		# List constructor is called here to cause immediate evaluation of the generator.
@@ -128,25 +130,35 @@ def subtract(a: Collection[iInterval], b: Collection[iInterval]) -> Collection[i
 	return result
 
 
-def subtract_linear(a: Collection[iInterval], b: Collection[iInterval]) -> Collection[iInterval]:
-	raise Exception("from here:")
-	result: Collection[iInterval] = a
-	link_a = {}
-	link_b = {}
+def subtract_linear(a: Iterable[iInterval], b: Iterable[iInterval]) -> Collection[iInterval]:
+	# minuend - subtrahend = difference
+	raise Exception("Keep editing from here :)")
+	result = a
+	a_minuend = {}
+	b_subtrahend = {}
 	
-	link_bounds = sorted(itertools.chain(get_linked_bounds(get_linked_intervals(a, link_a)), get_linked_bounds(get_linked_intervals(b, link_b))))
-	for prev, curr, next in util.iter_previous_and_next(link_bounds):
-		
-		sorted_linked_bounds = sorted(itertools.chain.from_iterable(get_linked_bounds(a_interval) for a_interval in a))
-		stack_count_before = 0
-		stack_count_after = 0
-		for previous_bound, current_bound, next_bound in util.iter_previous_and_next(sorted_linked_bounds):
+	sorted_link_bounds = sorted(itertools.chain(get_linked_bounds(get_linked_intervals(a, a_minuend)), get_linked_bounds(get_linked_intervals(b, b_subtrahend))))
+	
+	## TODO: this approach is probably not going to work :/
+	minuend_stack_count_before = 0
+	minuend_stack_count_after = 0
+	subtrahend_stack_count_before = 0
+	subtrahend_stack_count_after = 0
+	for previous_bound, current_bound, next_bound in util.iter_previous_and_next(sorted_link_bounds):
+		if current_bound.interval.linked_object is a_minuend:
 			if current_bound.is_lower_bound:
-				stack_count_after += 1
+				minuend_stack_count_after += 1
 			else:
-				stack_count_after -= 1
-			yield stack_count_before, current_bound, stack_count_after
-			stack_count_before = stack_count_after
+				minuend_stack_count_after -= 1
+		elif current_bound.interval.linked_object is b_subtrahend:
+			if current_bound.is_lower_bound:
+				subtrahend_stack_count_after += 1
+			else:
+				subtrahend_stack_count_after -= 1
+		if minuend_stack_count_after
+		yield stack_count_before, current_bound, stack_count_after
+		minuend_stack_count_before = minuend_stack_count_after
+		subtrahend_stack_count_before = subtrahend_stack_count_after
 
 
 def subtract_atomic(a: iInterval, b: iInterval) -> Collection[iInterval]:
@@ -279,7 +291,7 @@ def contains_value_atomic(a: iInterval, value: float) -> bool:
 		return True
 	elif math.isclose(a.upper_bound.value, value) and a.upper_bound.part_of_left:
 		return True
-	elif a.lower_bound < value < a.upper_bound:
+	elif a.lower_bound.value < value < a.upper_bound.value:
 		return True
 	return False
 
@@ -378,8 +390,9 @@ def hull(a: Iterable[iInterval]) -> Collection[iInterval]:
 	for a_interval in a:
 		if first:
 			result = a_interval
+			first = False
 		else:
-			hull_atomic(result, a_interval)
+			result = hull_atomic(result, a_interval)
 	return result
 	
 
@@ -480,6 +493,27 @@ def eq(a: Collection[iInterval], b: Collection[iInterval]) -> bool:
 	return len(b_intervals) == 0
 
 
-
-	
-	
+def add_merge(a: Iterable[iInterval], b: Iterable[iInterval]):
+	"""
+	Adds each sub-interval of a to b and returns a new set of intervals.
+	all sub-intervals from 'b' are added to the result as-is:
+	then all sub-intervals from 'a' are added to the result one by one,
+	as each sub-interval of 'a' is added it is merged with any intersecting intervals already in the result using the hull operation.
+	This means that if 'b' is a flattened multi interval, the result will also be a flat interval.
+	"""
+	result = tuple(b)
+	for a_interval in a:
+		new_result = []
+		
+		def split_condition(item): return intersects(a_interval, item)
+		
+		for intersecting, r_intervals in itertools.groupby(sorted(result, key=split_condition), split_condition):
+			if intersecting:
+				# 'a_interval' touches all the 'r_intervals'. Add the hull to the result.
+				new_result.extend(hull(itertools.chain(a_interval, r_intervals)))
+			else:
+				# 'a_interval' is disjoint from 'r_intervals'. Add both independently
+				new_result.append(a_interval)
+				new_result.extend(r_intervals)
+		result = new_result
+	return result

@@ -1,14 +1,17 @@
 from itertools import chain
 from itertools import islice
 from itertools import tee
-from typing import Any
+from typing import Any, TypeVar
 from typing import Iterable
 from typing import Iterator
 from typing import Tuple
 
 
+T = TypeVar("T")
+
+
 # credit to nosklo https://stackoverflow.com/questions/1011938/python-loop-that-also-accesses-previous-and-next-values
-def iter_previous_and_next(some_iterable: Iterable, none_value: Any = None) -> Iterator[Tuple[Any, Any, Any]]:
+def iter_previous_and_next(some_iterable: Iterable[T], none_value: Any = None) -> Iterator[Tuple[T, T, T]]:
 	previous_items, current_items, next_items = tee(some_iterable, 3)
 	previous_items = chain([none_value], previous_items)
 	next_items = chain(islice(next_items, 1, None), [none_value])
