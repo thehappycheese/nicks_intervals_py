@@ -11,6 +11,9 @@ import itertools
 import math
 from typing import Iterable, Union, List, Any
 
+import warnings
+warnings.warn("NicksIntervals.Interval and NicksIntervals.MultiInterval are deprecated. Please use iInterval and iMulti_iInterval instead.", DeprecationWarning)
+
 
 class Interval:
 	def __init__(self, start: Any, end: Any):

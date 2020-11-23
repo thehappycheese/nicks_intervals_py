@@ -4,6 +4,7 @@ from typing import Tuple, Collection, Iterable
 from NicksIntervals.iInterval import iInterval
 import NicksIntervals._operators as ops
 
+
 class iInterval_Map:
 	def __init__(self, links: Iterable[Tuple[iInterval, iInterval]]):
 		self.__links = tuple(links)

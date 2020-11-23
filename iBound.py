@@ -18,16 +18,17 @@ class iBound:
 		:param part_of_left: The direction of the bound. If True, this bound is part of the interval to the left of this bound (ie. if used as a lower bound, it means that the value of this bound is excluded from the interval; and if used as an upper bound it is included in the interval). If false, the opposite applies. It is recommended that the PART_OF_LEFT and PART_OF_RIGHT constants are imported from this module to make your code easier to read.
 		"""
 		try:
-			self.__value = float(value)
+			float(value)
+			self.__value = value
 		except ValueError:
 			raise TypeError("iBound(value={},...) parameter 'value' must be of type SupportsFloat")
 		self.__part_of_left = part_of_left
 		
 		if not(isinstance(value, float) or isinstance(value, int)):
-			raise TypeError(f"Unexpected argument type iBound(value=float,...) where value='{value}'")
+			raise TypeError(f"Unexpected argument type iBound(value: float|int,...) where value='{value}'")
 		
 		if not isinstance(part_of_left, bool):
-			raise TypeError(f"Unexpected argument type iBound(...,part_of_left=bool) where part_of_left='{part_of_left}'")
+			raise TypeError(f"Unexpected argument type iBound(...,part_of_left: bool) where part_of_left='{part_of_left}'")
 		
 		if self.__value == float("-inf") and self.part_of_left:
 			raise Exception("Bounds at -inf must be included_in_right")
@@ -36,16 +37,13 @@ class iBound:
 			raise Exception("Bounds at inf must be included_in_left")
 	
 	def __eq__(self, other):
-		if isinstance(other, (float, int)):
-			# TODO: is this case ever used? I think it should not be. It prevents use of == to confirm if two bound objects are equal but not necessarily the same object.
-			#  Tests are passed without triggering this error. Dead code?
-			raise Exception("Cannot compare iBound to float.")
-			return self.__value == other
-		elif isinstance(other, iBound):
+		if isinstance(other, iBound):
 			return math.isclose(self.__value, other.__value) and self.__part_of_left == other.__part_of_left
+		return NotImplemented
 	
 	def __gt__(self, other):
 		if isinstance(other, (float, int)):
+			raise Exception("should not be used")
 			return self.__value > other
 		elif isinstance(other, iBound):
 			if math.isclose(self.__value, other.__value):
@@ -55,6 +53,7 @@ class iBound:
 		
 	def __lt__(self, other):
 		if isinstance(other, (float, int)):
+			raise Exception("should not be used")
 			return self.__value < other
 		elif isinstance(other, iBound):
 			if math.isclose(self.__value, other.__value):
