@@ -29,7 +29,7 @@ def iter_consecutive_disjoint_pairs(iterable: Iterable[T]) -> Iterator[Tuple[T, 
 		yield a, b
 		
 		
-def iter_skip(iterable: Iterable[T], n) -> Iterator[T]:
+def iter_skip(n, iterable: Iterable[T]) -> Iterator[T]:
 	new_iterable = iterable if isinstance(iterable, collections.abc.Iterator) else iter(iterable)
 	for _ in range(n):
 		next(new_iterable)

@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import itertools
 import math
-from typing import Collection, TYPE_CHECKING, Any, Iterable, TypeVar, Generic
+from typing import Collection, TYPE_CHECKING, Iterable, TypeVar, Generic
 
 from .iBound import PART_OF_LEFT, Linked_iBound
 from .iBound import PART_OF_RIGHT
@@ -21,6 +21,8 @@ from .iBound import iBound_Positive_Infinity
 import NicksIntervals._operators as ops
 if TYPE_CHECKING:
 	from .iMulti_iInterval import iMulti_iInterval
+
+T = TypeVar("T")
 
 
 class iInterval:
@@ -79,12 +81,18 @@ class iInterval:
 		from .iMulti_iInterval import iMulti_iInterval
 		return iMulti_iInterval([])
 	
+	@classmethod
+	def coerce_from_collection(cls, collection: Collection[iInterval]):
+		return ops.coerce_iInterval_collection(collection)
+	
 	def __init__(self, lower_bound: iBound, upper_bound: iBound):
 		if not (isinstance(lower_bound, iBound) and isinstance(upper_bound, iBound)):
 			raise TypeError("Bounds must be an instance of iBound")
 		
 		self.__lower_bound: iBound = lower_bound
 		self.__upper_bound: iBound = upper_bound
+		
+		self.__linked_objects = tuple()
 		
 		if lower_bound.value == upper_bound.value:
 			if not(self.__lower_bound.part_of_right and self.__upper_bound.part_of_left):
@@ -238,17 +246,54 @@ class iInterval:
 	def translated_then_scaled(self, translation: float, scale_factor: float):
 		return ops.coerce_iInterval_collection(ops.translated_then_scaled(self, translation, scale_factor))
 	
-	def add_merge(self, other: Iterable[iInterval]):
-		return ops.coerce_iInterval_collection(ops.add_merge(self, other))
+	#####################
+	# UNION OPERATIONS
+	#####################
+	# TODO: Union of two interval sets is hard to define.
+	#  the default behaviour of all functions is to maintain the structure of the input multi-interval
+	#  union may imply a flattening of self and other intervals, just the other intervals, just the self or neither.
+	#  the default will be neither. But t avoid confusion, union will be named 'union_keeping_overlaps'
+	def union_keeping_overlaps(self, other: Iterable[iInterval]):
+		return ops.coerce_iInterval_collection([*self, *other])
+	
+	def union_merge_intersecting(self, other: Iterable[iInterval]):
+		return ops.coerce_iInterval_collection(ops.union_merge_intersecting(self, other))
+	
+	def union_merge_intersecting_or_touching(self, other: Iterable[iInterval]):
+		return ops.coerce_iInterval_collection(ops.union_merge_intersecting_or_touching(self, other))
 
-
-LinkObjectType = TypeVar("LinkObjectType")
+	def union_merge_touching(self, other: Iterable[iInterval]):
+		return ops.coerce_iInterval_collection(ops.union_merge_touching(self, other))
+	
+	def merge_intersecting(self):
+		return ops.coerce_iInterval_collection(ops.union_merge_intersecting([], self))
+	
+	def merge_intersecting_or_touching(self):
+		return ops.coerce_iInterval_collection(ops.union_merge_intersecting_or_touching([], self))
+	
+	def merge_touching(self):
+		return ops.coerce_iInterval_collection(ops.union_merge_touching([], self))
+		
+	def link_merge(self, linked_objects):
+		return Linked_iInterval(self, (*self.__linked_objects, *linked_objects))
+	
+	def link_replace(self, linked_objects):
+		return Linked_iInterval(self, linked_objects)
+	
+	def link_remove(self, linked_objects):
+		return Linked_iInterval(self, (lo for lo in linked_objects if lo not in linked_objects))
+	
+	def unlink(self):
+		return iInterval(self.__lower_bound, self.__upper_bound)
+	
+	@property
+	def linked_objects(self):
+		return self.__linked_objects
 
 # TODO: consider building this into the base class
 #  then changing all _operators to merge or split the content of the linked_objects array
 #  then we can dispense with the linked objects array
-class Linked_iInterval(iInterval, Generic[LinkObjectType]):
-	def __init__(self, original_iInterval: iInterval, linked_objects: Iterable[LinkObjectType]):
-		self.original_iInterval = original_iInterval
-		self.linked_objects: Collection[LinkObjectType] = [*linked_objects]
+class Linked_iInterval(iInterval, Generic[T]):
+	def __init__(self, original_iInterval: iInterval, linked_objects: Iterable[T]):
 		super().__init__(original_iInterval.lower_bound, original_iInterval.upper_bound)
+		self._iInterval__linked_objects = tuple(linked_objects)

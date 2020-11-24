@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import itertools
 import math
-from typing import TypeVar, Generator, Tuple, TYPE_CHECKING, List, Sized, Collection, Union, Iterable, Iterator
+from typing import TypeVar, Generator, Tuple, TYPE_CHECKING, List, Sized, Collection, Union, Iterable, Iterator, Callable
 
 from NicksIntervals import util
 from NicksIntervals.iBound import iBound, iBound_Negative_Infinity, iBound_Positive_Infinity, Linked_iBound
@@ -153,12 +153,12 @@ def subtract_and_flatten(minuend: Iterable[iInterval], subtrahend: Iterable[iInt
 	subtrahend_stack_count_before = 0
 	subtrahend_stack_count_after = 0
 	for current_bound in sorted_link_bounds:
-		if current_bound.interval.linked_objects is minuend:
+		if current_bound.interval.__linked_objects is minuend:
 			if current_bound.is_lower_bound:
 				minuend_stack_count_after += 1
 			else:
 				minuend_stack_count_after -= 1
-		elif current_bound.interval.linked_objects is subtrahend:
+		elif current_bound.interval.__linked_objects is subtrahend:
 			if current_bound.is_lower_bound:
 				subtrahend_stack_count_after += 1
 			else:
@@ -561,27 +561,93 @@ def eq(a: Collection[iInterval], b: Collection[iInterval]) -> bool:
 	return len(b_intervals) == 0
 
 
-def add_merge(a: Iterable[iInterval], b: Iterable[iInterval]):
+def union_merge_touching_OLD(a: Iterable[iInterval], b: Iterable[iInterval]):
+	raise Exception("pretty sure this algorithim is wrong. switch to union_merge_on_predicate()")
 	"""
-	Adds each sub-interval of a to b and returns a new set of intervals.
-	all sub-intervals from 'b' are added to the result as-is:
-	then all sub-intervals from 'a' are added to the result one by one,
-	as each sub-interval of 'a' is added it is merged with any intersecting intervals already in the result using the hull operation.
-	This means that if 'b' is a flattened multi interval, the result will also be a flat interval.
-	"""
+		Adds each sub-interval of a to b and returns a new set of intervals.
+		all sub-intervals from 'b' are added to the result as-is:
+		then all sub-intervals from 'a' are added to the result one by one,
+		as each sub-interval of 'a' is added it is merged with any intersecting or touching intervals already in the result using the hull operation.
+		This means that if 'b' is a flattened multi interval, the result will also be a flat interval.
+		"""
 	result = tuple(b)
 	for a_interval in a:
 		new_result = []
 		
-		def split_condition(item): return intersects(a_interval, item)
+		def split_condition(item: iInterval):
+			return touches_atomic(a_interval, item)
 		
-		for intersecting, r_intervals in itertools.groupby(sorted(result, key=split_condition), split_condition):
-			if intersecting:
+		for touching, r_intervals in itertools.groupby(sorted(result, key=split_condition), split_condition):
+			if touching:
 				# 'a_interval' touches all the 'r_intervals'. Add the hull to the result.
 				new_result.extend(hull(itertools.chain(a_interval, r_intervals)))
 			else:
-				# 'a_interval' is disjoint from 'r_intervals'. Add both independently
+				# 'a_interval' does not touch 'r_intervals'. Add both independently
 				new_result.append(a_interval)
 				new_result.extend(r_intervals)
 		result = new_result
 	return result
+
+
+def union_merge_touching(a: Iterable[iInterval], b: Iterable[iInterval]):
+	"""see union_merge_on_predicate for docs"""
+	return union_merge_on_predicate(a, b, lambda a_sub, b_sub: touches_atomic(a_sub, b_sub))
+
+
+def union_merge_intersecting_or_touching(a: Iterable[iInterval], b: Iterable[iInterval]):
+	"""see union_merge_on_predicate for docs"""
+	return union_merge_on_predicate(a, b, lambda a_sub, b_sub: intersects_atomic(a_sub, b_sub) or touches_atomic(a_sub, b_sub))
+
+
+def union_merge_intersecting(a: Iterable[iInterval], b: Iterable[iInterval]):
+	"""see union_merge_on_predicate for docs"""
+	return union_merge_on_predicate(a, b, lambda a_sub, b_sub: intersects_atomic(a_sub, b_sub))
+
+
+def union_merge_on_predicate(a: Iterable[iInterval], b: Iterable[iInterval], predicate: Callable[[iInterval, iInterval], bool]):
+	"""
+	Adds each sub-interval of b to a and returns a new set of intervals.
+	all sub-intervals from 'a' are added to the result as-is:
+	then all sub-intervals from 'b' are added to the result one by one,
+	as each sub-interval of 'b' is added it is merged with any intervals already in the result for which the predicate returns true using the hull operation.
+	This means that if 'a' is a flattened multi interval, the result will also be a flat interval.
+	"""
+	results = list(a)
+	for item_to_insert in b:
+		index = 0
+		while index < len(results):
+			result = results[index]
+			if predicate(result, item_to_insert):
+				item_to_insert = hull_atomic(item_to_insert, result)
+				results.remove(result)
+				index = 0
+			index += 1
+		results.append(item_to_insert)
+	return results
+
+
+def union_merge_intersecting_or_touching_linked(a: Iterable[Linked_iInterval], b: Iterable[Linked_iInterval]):
+	"""see union_merge_on_predicate for docs"""
+	return union_merge_on_predicate_linked(a, b, lambda a_sub, b_sub: intersects_atomic(a_sub, b_sub) or touches_atomic(a_sub, b_sub))
+
+
+def union_merge_on_predicate_linked(a: Iterable[Linked_iInterval], b: Iterable[Linked_iInterval], predicate: Callable[[iInterval, iInterval], bool]) -> Collection[Linked_iInterval]:
+	"""
+	Adds each sub-interval of b to a and returns a new set of intervals.
+	all sub-intervals from 'a' are added to the result as-is:
+	then all sub-intervals from 'b' are added to the result one by one,
+	as each sub-interval of 'b' is added it is merged with any intervals already in the result for which the predicate returns true using the hull operation.
+	This means that if 'a' is a flattened multi interval, the result will also be a flat interval.
+	"""
+	results = list(a)
+	for item_to_insert in b:
+		index = 0
+		while index < len(results):
+			result = results[index]
+			if predicate(result, item_to_insert):
+				item_to_insert = hull_atomic(item_to_insert, result).link_merge([*item_to_insert.linked_objects, *result.linked_objects])
+				results.remove(result)
+				index = 0
+			index += 1
+		results.append(item_to_insert)
+	return results
