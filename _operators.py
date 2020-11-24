@@ -2,10 +2,8 @@ from __future__ import annotations
 
 import itertools
 import math
-from typing import Any, TypeVar
-from typing import Generator, Tuple, TYPE_CHECKING, List, Sized, Collection, Union, Iterable
+from typing import TypeVar, Generator, Tuple, TYPE_CHECKING, List, Sized, Collection, Union, Iterable, Iterator
 
-from typing import Iterator
 from NicksIntervals import util
 from NicksIntervals.iBound import iBound, iBound_Negative_Infinity, iBound_Positive_Infinity, Linked_iBound
 
@@ -15,13 +13,7 @@ if TYPE_CHECKING:
 	from NicksIntervals.iInterval import Linked_iInterval
 	from NicksIntervals.iMulti_iInterval import iMulti_iInterval
 
-# class iInterval(abc_Collection):
-# 	@property
-# 	def upper_bound(self) -> iBound:
-# 		return self.__upper_bound
-# 	@property
-# 	def lower_bound(self) -> iBound:
-# 		return self.__upper_bound
+T = TypeVar('T')
 
 
 def scaled(a: Iterable[iInterval], scale_factor: float) -> Collection[iInterval]:
@@ -62,12 +54,14 @@ def apply_interval_map_to_interval_atomic(map_from: iInterval, map_to: iInterval
 	)
 	return result
 
+
 def apply_interval_maps_to_intervals(maps: Iterable[Tuple[iInterval, iInterval]], a: Iterable[iInterval]) -> Collection[iInterval]:
 	result = []
 	for a_interval in a:
 		for map_from, map_to in maps:
 			result.extend(apply_interval_map_to_interval_atomic(map_from, map_to, a_interval))
 	return result
+
 
 def apply_interval_map_to_value_atomic(map_from: iInterval, map_to: iInterval, value: float) -> Tuple[float, ...]:
 	if contains_value_atomic(map_from, value):
@@ -76,6 +70,7 @@ def apply_interval_map_to_value_atomic(map_from: iInterval, map_to: iInterval, v
 		if contains_value_atomic(map_to, result_value):
 			return tuple(result_value)
 	return tuple()
+
 
 def apply_interval_maps_to_values(maps: Iterable[Tuple[iInterval, iInterval]], values: Iterable[float]) -> Collection[float]:
 	result = []
@@ -113,10 +108,7 @@ def get_linked_bounds(a: Iterable[iInterval]) -> List[Linked_iBound]:
 		)) for a_interval in a))
 
 
-LinkedObjectsType = TypeVar('LinkedObjectsType')
-
-
-def get_linked_intervals(a: Iterable[iInterval], linked_objects: Iterable[LinkedObjectsType]) -> Iterable[Linked_iInterval[LinkedObjectsType]]:
+def get_linked_intervals(a: Iterable[iInterval], linked_objects: Iterable[T]) -> Iterable[Linked_iInterval[T]]:
 	from NicksIntervals.iInterval import Linked_iInterval
 	return list(Linked_iInterval(a_interval, linked_objects) for a_interval in a)
 
@@ -181,10 +173,10 @@ def subtract_and_flatten(minuend: Iterable[iInterval], subtrahend: Iterable[iInt
 		subtrahend_stack_count_before = subtrahend_stack_count_after
 
 	from .iInterval import iInterval
-	return [iInterval(lower_bound, upper_bound) for lower_bound, upper_bound in util.iter_consecutive_disjoint_pairs(bound_list) if lower_bound!=upper_bound]
+	return [iInterval(lower_bound, upper_bound) for lower_bound, upper_bound in util.iter_consecutive_disjoint_pairs(bound_list) if lower_bound != upper_bound]
 
 
-def subtract_without_flatten(minuend: Iterable[iInterval], subtrahend: Iterable[iInterval]) -> Collection[iInterval]:
+def subtract(minuend: Iterable[iInterval], subtrahend: Iterable[iInterval]) -> Collection[iInterval]:
 	from .iInterval import iInterval
 	# minuend - subtrahend = difference
 	result = []
@@ -193,9 +185,6 @@ def subtract_without_flatten(minuend: Iterable[iInterval], subtrahend: Iterable[
 	
 	minuend_intervals_awaiting_lower_bound: List[iInterval] = []
 	minuend_intervals_awaiting_upper_bound: List[Tuple[iInterval, Linked_iBound]] = []
-	
-	minuend_stack = set()
-	subtrahend_exterior_stack = set()
 	
 	subtrahend_stack_count_previous = 0
 	subtrahend_stack_count = 0
@@ -238,7 +227,6 @@ def subtract_without_flatten(minuend: Iterable[iInterval], subtrahend: Iterable[
 		subtrahend_stack_count_previous = subtrahend_stack_count
 		
 	return result
-
 
 
 def subtract_atomic(a: iInterval, b: iInterval) -> Collection[iInterval]:
@@ -447,21 +435,21 @@ def exterior(a: Collection[iInterval]) -> Collection[iInterval]:
 
 def interior(a: Collection[iInterval]) -> Collection[iInterval]:
 	from .iInterval import iInterval
-	return coerce_iInterval_collection([iInterval(lower_bound, upper_bound)
+	return [iInterval(lower_bound, upper_bound)
 			for lower_bound, upper_bound, is_interior
 			in iter_bound_pairs(a)
 			if is_interior
-	])
+	]
 
 
-def interior_merged(self) -> iMulti_iInterval:
+def interior_merged(self) -> Collection[iInterval]:
 	from .iInterval import iInterval
-	return coerce_iInterval_collection([
+	return [
 		iInterval(lower_bound, upper_bound)
 		for lower_bound, upper_bound, is_interior
 		in iter_bound_pairs_merge_touching(self)
 		if is_interior
-	])
+	]
 
 
 def hull(a: Iterable[iInterval]) -> Collection[iInterval]:
