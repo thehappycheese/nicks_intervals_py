@@ -37,6 +37,9 @@ class iBound:
 		elif self.__value == float("inf") and self.part_of_right:
 			raise Exception("Bounds at inf must be included_in_left")
 	
+	def __hash__(self):
+		return hash((self.__value, self.__part_of_left))
+	
 	def __eq__(self, other):
 		if isinstance(other, iBound):
 			return math.isclose(self.__value, other.__value) and self.__part_of_left == other.__part_of_left
@@ -131,6 +134,9 @@ class Linked_iBound(iBound):
 			if math.isclose(self.value, other.value) and self.part_of_left == other.part_of_left:
 				return self.is_upper_bound and other.is_lower_bound
 		return super().__lt__(other)
+	
+	def __hash__(self):
+		return hash((super().__hash__(), self.__is_lower_bound, self.__interval))
 	
 	@property
 	def interval(self):

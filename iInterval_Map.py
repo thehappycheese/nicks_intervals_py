@@ -12,7 +12,10 @@ class iInterval_Map:
 	def reverse(self):
 		return iInterval_Map((b, a) for a, b in self.__links)
 	
-	def map(self, intervals: Iterable[iInterval]) -> Collection[iInterval]:
+	def map_interval(self, intervals: Iterable[iInterval]) -> Collection[iInterval]:
 		return ops.coerce_iInterval_collection(
-			ops.apply_interval_maps(self.__links, intervals)
+			ops.apply_interval_maps_to_intervals(self.__links, intervals)
 		)
+	
+	def map_values(self, values: Iterable[float]) -> Collection[float]:
+		return ops.apply_interval_maps_to_values(self.__links, values)

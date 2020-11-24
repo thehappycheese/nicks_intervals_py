@@ -1,21 +1,75 @@
+from collections import deque
 from itertools import chain
 from itertools import islice
 from itertools import tee
-from typing import Any, TypeVar
-from typing import Iterable
-from typing import Iterator
-from typing import Tuple
-
+from typing import Any, TypeVar, Union, Optional, Callable, Iterable, Iterator, Tuple
+import collections.abc
 
 T = TypeVar("T")
+K = TypeVar("K")
 
 
 # credit to nosklo https://stackoverflow.com/questions/1011938/python-loop-that-also-accesses-previous-and-next-values
-def iter_previous_and_next(some_iterable: Iterable[T], none_value: Any = None) -> Iterator[Tuple[T, T, T]]:
+def iter_previous_current_next(some_iterable: Iterable[T], none_value: Optional[K] = None) -> Iterator[Tuple[Union[Optional[K], T], T, Union[Optional[K], T]]]:
 	previous_items, current_items, next_items = tee(some_iterable, 3)
 	previous_items = chain([none_value], previous_items)
 	next_items = chain(islice(next_items, 1, None), [none_value])
 	return zip(previous_items, current_items, next_items)
+
+
+def iter_previous_current(some_iterable: Iterable[T], none_value: Optional[K] = None) -> Iterator[Tuple[Union[Optional[K], T], T]]:
+	previous_items, current_items = tee(some_iterable, 2)
+	previous_items = chain([none_value], previous_items)
+	return zip(previous_items, current_items)
+
+
+def iter_consecutive_disjoint_pairs(iterable: Iterable[T]) -> Iterator[Tuple[T, T]]:
+	m = iterable if isinstance(iterable, collections.abc.Iterator) else iter(iterable)
+	for a, b in zip(m, m):
+		yield a, b
+		
+		
+def iter_skip(iterable: Iterable[T], n) -> Iterator[T]:
+	new_iterable = iterable if isinstance(iterable, collections.abc.Iterator) else iter(iterable)
+	for _ in range(n):
+		next(new_iterable)
+	return new_iterable
+
+# https://stackoverflow.com/questions/949098/python-split-a-list-based-on-a-condition/64979865#64979865
+def iter_split_on_predicate(predicate: Callable[[T], bool], iterable: Iterable[T]) -> Tuple[Iterator[T], Iterator[T]]:
+	new_iterable = iterable if isinstance(iterable, collections.abc.Iterator) else iter(iterable)
+	hold_predicate_true = deque()
+	hold_predicate_false = deque()
+	
+	def shared_generator():
+		for item in new_iterable:
+			print("Evaluate predicate.")
+			if predicate(item):
+				hold_predicate_true.appendleft(item)
+				yield True
+			else:
+				hold_predicate_false.appendleft(item)
+				yield False
+	
+	def iter_hold_queue_or_shared_generator(request, shared_gen, hold_queue):
+		if not hold_queue:
+			try:
+				while next(shared_gen) != request:
+					pass
+			except:
+				pass
+		while hold_queue:
+			print("Yield where predicate is "+str(request))
+			yield hold_queue.pop()
+			if not hold_queue:
+				try:
+					while next(shared_gen) != request:
+						pass
+				except:
+					pass
+			
+	return iter_hold_queue_or_shared_generator(True, shared_generator(), hold_predicate_true), iter_hold_queue_or_shared_generator(False, shared_generator(), hold_predicate_false)
+
 
 
 def first_and_last(iterable: Iterator) -> Tuple[Any, Any]:

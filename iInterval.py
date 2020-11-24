@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import itertools
 import math
-from typing import Collection, TYPE_CHECKING, Any, Iterable
+from typing import Collection, TYPE_CHECKING, Any, Iterable, TypeVar, Generic
 
 from .iBound import PART_OF_LEFT, Linked_iBound
 from .iBound import PART_OF_RIGHT
@@ -133,6 +133,9 @@ class iInterval:
 	def __eq__(self, other):
 		return ops.eq(self, other)
 	
+	def __hash__(self):
+		return hash((self.__lower_bound.__hash__(), self.__upper_bound.__hash__()))
+	
 	def print(self):
 		"""
 		prints intervals and multi intervals like this for debugging (only works for integer intervals):
@@ -239,8 +242,13 @@ class iInterval:
 		return ops.coerce_iInterval_collection(ops.add_merge(self, other))
 
 
-class Linked_iInterval(iInterval):
-	def __init__(self, original_iInterval: iInterval, linked_object: Any):
+LinkObjectType = TypeVar("LinkObjectType")
+
+# TODO: consider building this into the base class
+#  then changing all _operators to merge or split the content of the linked_objects array
+#  then we can dispense with the linked objects array
+class Linked_iInterval(iInterval, Generic[LinkObjectType]):
+	def __init__(self, original_iInterval: iInterval, linked_objects: Iterable[LinkObjectType]):
 		self.original_iInterval = original_iInterval
-		self.linked_object = linked_object
+		self.linked_objects: Collection[LinkObjectType] = [*linked_objects]
 		super().__init__(original_iInterval.lower_bound, original_iInterval.upper_bound)
