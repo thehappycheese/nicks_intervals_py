@@ -68,15 +68,14 @@ def apply_interval_map_to_value_atomic(map_from: iInterval, map_to: iInterval, v
 		scale_factor = map_to.length / map_from.length
 		result_value = (value-map_from.lower_bound.value) * scale_factor + map_to.lower_bound.value
 		if contains_value_atomic(map_to, result_value):
-			return tuple(result_value)
+			return (result_value, )
 	return tuple()
 
 
-def apply_interval_maps_to_values(maps: Iterable[Tuple[iInterval, iInterval]], values: Iterable[float]) -> Collection[float]:
+def apply_interval_maps_to_value(maps: Iterable[Tuple[iInterval, iInterval]], value: float) -> Collection[float]:
 	result = []
-	for value in values:
-		for map_from, map_to in maps:
-			result.extend(apply_interval_map_to_value_atomic(map_from, map_to, value))
+	for map_from, map_to in maps:
+		result.extend(apply_interval_map_to_value_atomic(map_from, map_to, value))
 	return result
 
 
