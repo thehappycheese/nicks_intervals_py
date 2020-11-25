@@ -93,7 +93,8 @@ class iInterval:
 		self.__upper_bound: iBound = upper_bound
 		
 		self.__linked_objects = tuple()
-		
+		# TODO: consider returning iInterval.empty() instead of throwing exception.
+		#  I am inclined to keep the exceptions as they (may?) prevent hard to track bugs elsewhere in the library
 		if lower_bound.value == upper_bound.value:
 			if not(self.__lower_bound.part_of_right and self.__upper_bound.part_of_left):
 				raise Exception(f"Degenerate intervals (lower_bound==upper_bound) are only permitted when both bounds are closed.")

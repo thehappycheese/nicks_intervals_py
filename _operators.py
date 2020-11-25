@@ -210,13 +210,15 @@ def subtract(minuend: Iterable[iInterval], subtrahend: Iterable[iInterval]) -> C
 					# this interval did find a lower bound, it must be added to the output.
 					interval_to_close = next(item for item in minuend_intervals_awaiting_upper_bound if item[0] == current_bound.interval)
 					minuend_intervals_awaiting_upper_bound.remove(interval_to_close)
-					result.append(iInterval(interval_to_close[1].bound, current_bound.bound))
+					if interval_to_close[1].bound != current_bound.bound:  # TODO: is this if statement necessary?
+						result.append(iInterval(interval_to_close[1].bound, current_bound.bound))
 		
 		if subtrahend_stack_count > 0 and subtrahend_stack_count_previous == 0:  # a lower bound of subtrahend
 			# the current bound should be used to terminate all intervals in awaiting_upper_bound, and all these intervals should be moved into awaiting lower bound.
 			for awaiting_upper_bound in minuend_intervals_awaiting_upper_bound:
 				minuend_intervals_awaiting_lower_bound.append(awaiting_upper_bound[0])
-				result.append(iInterval(awaiting_upper_bound[1].bound, current_bound.bound))
+				if awaiting_upper_bound[1].bound != current_bound.bound:
+					result.append(iInterval(awaiting_upper_bound[1].bound, current_bound.bound))
 			minuend_intervals_awaiting_upper_bound = []
 		elif subtrahend_stack_count == 0 and subtrahend_stack_count_previous > 0:  # an upper bound of subtrahend
 			# the current bound should be used to start all intervals in awaiting lower bound, and they should be moved into awaiting upper bound

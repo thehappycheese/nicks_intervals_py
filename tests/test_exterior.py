@@ -1,4 +1,4 @@
-from typing import Collection
+from typing import Collection, Union
 
 import pytest
 
@@ -7,11 +7,11 @@ from NicksIntervals.iInterval import iInterval
 from NicksIntervals.iMulti_iInterval import iMulti_iInterval
 
 
-def exterior_is_same_as_inf_sub(a: Collection[iInterval]):
+def exterior_is_same_as_inf_sub(a: Union[iInterval, iMulti_iInterval]):
 	return a.exterior == iInterval.inf().subtract(a)
 
 
-def interior_is_the_same_as_inf_sub_inf_sub(a: Collection[iInterval]):
+def interior_is_the_same_as_inf_sub_inf_sub(a: Union[iInterval, iMulti_iInterval]):
 	return a.interior == iInterval.inf().subtract(iInterval.inf().subtract(a))
 
 

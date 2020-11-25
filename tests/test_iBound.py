@@ -33,15 +33,18 @@ def test_iBound_interaction_with_builtin_sorted():
 	]
 	
 	# TODO: this is a crap way to test sorting but 20 shuffles should capture anything stupid.
+	#  its really not even clear what is being tested here. I don't remember how this test works.
 	for _ in range(0, 20):
 		bound_list_shuffled_sorted = bound_list.copy()
 		shuffle(bound_list_shuffled_sorted)
-		print(bound_list_shuffled_sorted)
 		bound_list_shuffled_sorted = list(sorted(bound_list_shuffled_sorted))
 		# ensure all interval calls succeed without error
 		for lower_bound, upper_bound in zip(bound_list_shuffled_sorted, bound_list_shuffled_sorted[1:]):
-			print(iInterval(lower_bound, upper_bound))
+			iInterval(lower_bound, upper_bound)
 		
 		# ensure sorted list is the same as the starting list
 		for bound, shuffled_bound in zip(bound_list, bound_list_shuffled_sorted):
 			assert bound is shuffled_bound
+
+
+# TODO: test Linked_iBound which has a different sorting mechanism
