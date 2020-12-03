@@ -19,7 +19,7 @@ from NicksIntervals.Multi_Interval import Multi_Interval
 from NicksIntervals.Interval_Mapping import Interval_Mapping
 ```
 
-Most operations are implemented in a 'functional style' and can be accessed if required as follows:
+Most operations are implemented in a 'functional style' and can be accessed either through the `Interval` class, or:
 ```python
 import NicksIntervals._operators as ops
 ``` 
@@ -29,8 +29,9 @@ import NicksIntervals._operators as ops
 
 ### 1.1 Definitions 
 
-An `Interval` is an ordered pair of `Bound` objects; a `lower_bound` and an `upper_bound`
-Each `Bound` specifies 
+An `Interval` is an ordered pair of `Bound` objects; a `lower_bound` and an `upper_bound`.
+
+Each `Bound` object specifies 
 1. The floating point (or integer) value of the endpoint of an `Interval`, and
 2. If the exact value of the bound is part of the interval to its left (`PART_OF_LEFT`) to to its right (`PART_OF_RIGHT`)
 
@@ -123,7 +124,7 @@ my_interval = Interval.open_inf(0.0)
 my_interval = Interval.closed_inf(0.0)
 ```
 
-### Multi_Intervals
+### 1.4 Multi_Intervals
 
 Many operations on intervals may result in zero, one, or more intervals.
 In any of these cases, the result can be represented as a `Multi_Interval`
@@ -137,12 +138,13 @@ and has all the same functions (which is pretty magical really).
 
 The `Multi_Interval` internally stores a tuple of zero or more `Interval` objects.
 
-`Multi_Interval` objects should be considered to be **un-ordered** `Collection[Interval]`.
-Most operations do not preserve the order of the `Intervals` in this internal tuple object.
+`Multi_Interval` objects should be considered to be **un-ordered** `Collection[Interval]` because most
+unfortunately most operations do not preserve order.
 
 >Note: For convenience `Interval` objects are also a `Collection[Interval]` where `len(Interval(...)) == 1`
->This is nice because the result of **any interval operation can iterated** over with a for loop, added to a list with the .extend() function, or added to a list using array expansion or comprehension.
+>This is nice because the result of **any interval operation can iterated over** with a for loop, added to a list with the .extend() function, or added to a list using array expansion or comprehension.
 
+`Multi_Interval` objects are constructed by supplying any `Iterable[]`
 ```python
 from NicksIntervals.Interval import Interval
 from NicksIntervals.Multi_Interval import Multi_Interval
@@ -154,8 +156,13 @@ my_multi_interval = Multi_Interval(
     )
 )
 ```
-## work in progress
-The remainder of this readme needs to be updated to reflect some changes:
+
+### 1.5 Flat_Multi_Interval
+Are a planned future feature to work with ordered, non-overlapping `Sequence[Interval]`.
+Internally these would consist of a `sorted(List[Bound])` and `List[int]`. The former divides the real number line into non-overlapping 'Intervals' while the latter is a set of integer indexes/offsets into the first list which specify which of the intervals are interior.
+
+### 1.6 Interval_Map and Interval_Mapping
+TODO - write docs 
 
 ## Functions
 ### Subtraction
@@ -206,3 +213,6 @@ b = Interval.closed(10, 20)
 print(a.intersects(b))
 # >>> True
 ```
+
+## work in progress
+The remainder of this readme needs to be updated to reflect some changes:
