@@ -9,7 +9,7 @@ from NicksIntervals.Bound import Bound, iBound_Negative_Infinity, iBound_Positiv
 
 
 if TYPE_CHECKING:
-	from NicksIntervals.Interval_Map import Interval_Link
+	from NicksIntervals.Interval_Map import Interval_Map
 	from NicksIntervals.Interval import Interval
 	from NicksIntervals.Interval import Linked_Interval
 	from NicksIntervals.Multi_Interval import Multi_Interval
@@ -460,7 +460,7 @@ def interior_merged(self) -> Collection[Interval]:
 		if is_interior
 	]
 
-# TODO: consider changing the result to Optional[Interval]
+
 def hull(a: Iterable[Interval]) -> Collection[Interval]:
 	result = tuple()
 	first = True
@@ -542,8 +542,7 @@ def coerce_collection_to_Interval_or_Multi_Interval(a: Collection[Interval]) -> 
 		if isinstance(a, Interval):
 			return a
 		else:
-			# TODO: This nested conversion is probably not doing anything useful. Probably we wanted flat_map
-			raise Exception("Why are we doing this?")
+			#  This bit is needed because many _operators will return a list containing a single interval, which causes the isinstance test above to fail.
 			return coerce_collection_to_Interval_or_Multi_Interval(*a)
 	else:
 		from .Multi_Interval import Multi_Interval

@@ -1,64 +1,6 @@
 # Ponderings
 
-## 1.0 - Anatomy of an Interval Object
-
-### 1.1 Constructing an Interval
-An `Interval` is an ordered pair of `Bound`s.
-Each `Bound` specifies the floating point value of the endpoints of the interval and also define weather the bounds themselves form part of the interval:
-
-```python
-from NicksIntervals.Interval import Interval
-from NicksIntervals.Bound import Bound, PART_OF_LEFT, PART_OF_RIGHT
-
-my_first_interval = Interval(
-	Bound(
-		0.5,
-		PART_OF_RIGHT
-	),
-	Bound(
-		1.0,
-		PART_OF_LEFT
-	)
-)
-# Equivalent to the following:
-my_first_interval = Interval.closed(0.5, 1.0)
-```
-
-A less confusing way to construct intervals is to use the factory functions:
-
-```python
-# both bound values are part of the interval:
-my_interval = Interval.closed(0.5, 1.0)
-
-# neither of the bound values are part of the interval
-my_interval = Interval.open(0.5, 1.0)
-
-# only the right bound is part of the interval (the exact value 0.5 is excluded)
-my_interval = Interval.open_closed(0.5, 1.0)
-
-# only the left bound is part of the interval (the exact value 1.0 is excluded)
-my_interval = Interval.closed_open(0.5, 1.0)
-```
-### 1.2 Bound
-Bounds represent a floating point value, augmented with a direction; left, or right. 
-
-**Bound.value**
-
-Bounds support coersion to float and comparison opperators. The float value can be explicitly obtained using Bound(...).value.
-
-**Bound.part_of_left / Bound.part_of_right**
-
-Internally the bound direction represented by a single boolean value which is the second parameter to the constructor. To improve the readability of usercode it is reccomended that you import the following constants from the Bound module for use in constructing an Bound:
-```python
-# Signifies that a bound is part of the interval to the left of it's value:
-PART_OF_LEFT = False
-b1 = Bound(1.0, PART_OF_LEFT)
-
-# Signifies that a bound is part of the interval to the right of it's value:
-PART_OF_RIGHT = True
-b2 = Bound(1.0, PART_OF_RIGHT)
-```
-***
+   
 
 ## 2.0 Working with Intervals:
 ### 2.1 Opperations on Intervals

@@ -113,8 +113,7 @@ class Linked_Bound(Bound):
 		>>>Interval(...).get_linked_bounds()
 		"""
 		super().__init__(bound.value, bound.part_of_left)
-		self.__interval: Union[Interval, Linked_Interval] = interval
-		self.__bound: Bound = bound
+		self.__interval: Union[Interval] = interval
 		self.__is_lower_bound = is_lower_bound
 	
 	def __format__(self, format_spec):
@@ -125,13 +124,15 @@ class Linked_Bound(Bound):
 	
 	def __gt__(self, other):
 		if isinstance(other, Linked_Bound):
-			if math.isclose(self.value, other.value) and self.part_of_left == other.part_of_left:
+			# if math.isclose(self.value, other.value) and self.part_of_left == other.part_of_left:
+			if super().__eq__(other):
 				return self.is_lower_bound and other.is_upper_bound
 		return super().__gt__(other)
 
 	def __lt__(self, other):
 		if isinstance(other, Linked_Bound):
-			if math.isclose(self.value, other.value) and self.part_of_left == other.part_of_left:
+			# if math.isclose(self.value, other.value) and self.part_of_left == other.part_of_left:
+			if super().__eq__(other):
 				return self.is_upper_bound and other.is_lower_bound
 		return super().__lt__(other)
 	
@@ -146,7 +147,7 @@ class Linked_Bound(Bound):
 	@property
 	def bound(self):
 		"""a reference back to the original immutable Bound object which the interval uses"""
-		return self.__bound
+		return self.__interval.lower_bound if self.__is_lower_bound else self.__interval.upper_bound
 	
 	@property
 	def is_lower_bound(self):
