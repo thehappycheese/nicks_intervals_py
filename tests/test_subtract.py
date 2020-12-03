@@ -1,49 +1,49 @@
 
-from NicksIntervals.iInterval import iInterval
-from NicksIntervals.iMulti_iInterval import iMulti_iInterval
+from NicksIntervals.Interval import Interval
+from NicksIntervals.Multi_Interval import Multi_Interval
 
 
 def test_subtract():
-	a = iInterval.closed(0, 10)
-	b = iInterval.closed(5, 15)
+	a = Interval.closed(0, 10)
+	b = Interval.closed(5, 15)
 	
 	# test one bound overlapping subtraction
-	assert a.subtract(b) == iInterval.closed_open(0, 5)
-	assert b.subtract(a) == iInterval.open_closed(10, 15)
-	assert a.subtract(a) == iInterval.empty()
-	assert b.subtract(b) == iInterval.empty()
+	assert a.subtract(b) == Interval.closed_open(0, 5)
+	assert b.subtract(a) == Interval.open_closed(10, 15)
+	assert a.subtract(a) == Interval.empty()
+	assert b.subtract(b) == Interval.empty()
 	
 	# test disjoint subtraction
-	c = iInterval.closed(20, 25)
+	c = Interval.closed(20, 25)
 	assert c.subtract(a) == c
 	assert a.subtract(c) == a
 	
 	# test complex subtraction produces multi interval.
-	d = iInterval.closed(2, 8)
-	a_sub_d = iMulti_iInterval([iInterval.closed_open(0, 2), iInterval.open_closed(8, 10)])
+	d = Interval.closed(2, 8)
+	a_sub_d = Multi_Interval([Interval.closed_open(0, 2), Interval.open_closed(8, 10)])
 	assert a.subtract(d) == a_sub_d
-	assert d.subtract(a) == iInterval.empty()
+	assert d.subtract(a) == Interval.empty()
 	# test re-subtraction produces no result.
 	assert a_sub_d.subtract(d) == a_sub_d
 	
 	# test empty interval has no effect
-	assert iInterval.empty().subtract(a) == iInterval.empty()
-	assert a.subtract(iInterval.empty()) == a
+	assert Interval.empty().subtract(a) == Interval.empty()
+	assert a.subtract(Interval.empty()) == a
 	
 	# test infinite subtraction
-	assert a.subtract(iInterval.inf()) == iInterval.empty()
-	assert a_sub_d.subtract(iInterval.inf()) == iInterval.empty()
+	assert a.subtract(Interval.inf()) == Interval.empty()
+	assert a_sub_d.subtract(Interval.inf()) == Interval.empty()
 	
 	# test subtraction from infinite
-	assert iInterval.inf().subtract(a) == iMulti_iInterval([iInterval.inf_open(0), iInterval.open_inf(10)])
+	assert Interval.inf().subtract(a) == Multi_Interval([Interval.inf_open(0), Interval.open_inf(10)])
 
 
 def test_subtract_multi_interval():
 	# test subtraction from multi interval preserves structure
-	assert iMulti_iInterval([iInterval.closed(0, 20), iInterval.closed(0, 20), iInterval.closed(0, 10)]).subtract(iInterval.closed(10, 20)) == [iInterval.closed_open(0, 10), iInterval.closed_open(0, 10), iInterval.closed_open(0, 10)]
+	assert Multi_Interval([Interval.closed(0, 20), Interval.closed(0, 20), Interval.closed(0, 10)]).subtract(Interval.closed(10, 20)) == [Interval.closed_open(0, 10), Interval.closed_open(0, 10), Interval.closed_open(0, 10)]
 
 def torture_test_subtract():
-	inf = iInterval.inf()
-	ints = [iInterval.open(a, a+0.5) for a in range(10000)]
-	ints_comp = [iInterval.inf_closed(0), *[iInterval.closed(a+0.5, a+1) for a in range(9999)], iInterval.closed_inf(9999.5)]
+	inf = Interval.inf()
+	ints = [Interval.open(a, a + 0.5) for a in range(10000)]
+	ints_comp = [Interval.inf_closed(0), *[Interval.closed(a + 0.5, a + 1) for a in range(9999)], Interval.closed_inf(9999.5)]
 	assert inf.subtract(ints) == ints_comp

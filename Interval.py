@@ -1,500 +1,305 @@
 """
 Nicholas Archer
-2020/06/09
+2020-10-08
 
 Roads are made of segments, and I nearly exploded with frustration writing code to work with overlapping or touching intervals.
+Also I am using this to process midi files.
 """
 
 from __future__ import annotations
 
 import itertools
 import math
-from typing import Iterable, Union, List, Any
+from typing import Collection, TYPE_CHECKING, Iterable, TypeVar, Generic
 
-import warnings
-warnings.warn("NicksIntervals.Interval and NicksIntervals.MultiInterval are deprecated. Please use iInterval and iMulti_iInterval instead.", DeprecationWarning)
+from .Bound import PART_OF_LEFT, Linked_Bound
+from .Bound import PART_OF_RIGHT
+from .Bound import Bound
+from .Bound import iBound_Negative_Infinity
+from .Bound import iBound_Positive_Infinity
+
+import NicksIntervals._operators as ops
+if TYPE_CHECKING:
+	from .Multi_Interval import Multi_Interval
+
+T = TypeVar("T")
 
 
 class Interval:
-	def __init__(self, start: Any, end: Any):
-		"""To initialise self.start & self.end with a type other than float, make a subclass of Interval().
-		This will give the best auto-completion and type checking results in pycharm.
-		The subclass of interval only needs to provide a replacement for this __init__()
-
-		Custom types used for self.start and self.end must:
-		 - define __float__ AND
-		 - define __lt__, __gt__, __le__, __ge__, __eq__, __ne__ AND
-		 - these dunder methods must accept any argument type that has a __float__ method
-
-		Optionally, the subclass must
-			 - override @classmethod Interval.make_infinite_full(), and Interval.make_infinite_empty() otherwise a float('inf') value will be used
-		"""
-		self.start: Any = start
-		self.end: Any = end
+	"""Immutable Interval based on python's built in floats. Nothing fancy."""
 	
 	@classmethod
-	def make_infinite_full(cls) -> Interval:
-		"""
-		:return: full Interval, starting at negative infinity and ending at infinity
-		"""
-		# not using cls to construct; if cls using something SupportsFloat instead of float, there is no way for us to get the maximum and minimum value
-		return Interval(-float('inf'), float('inf'))
+	def complete(cls):
+		"""returns an interval spanning the complete real number line. Or at least all representable python floats."""
+		return Interval(lower_bound=iBound_Negative_Infinity, upper_bound=iBound_Positive_Infinity)
 	
 	@classmethod
-	def make_infinite_empty(cls) -> Interval:
-		"""
-		:return: empty Interval, starting at infinity and ending at negative infinity
-		"""
-		# not using cls to construct; if cls using something SupportsFloat instead of float, there is no way for us to get the maximum and minimum value
-		return Interval(float('inf'), float('-inf'))
+	def inf(cls):
+		"""Alias of .complete()"""
+		return Interval(iBound_Negative_Infinity, iBound_Positive_Infinity)
+
+	@classmethod
+	def degenerate(cls, value: float = 0.0):
+		"""returns a zero-length 'degenerate' interval"""
+		return Interval(Bound(value, PART_OF_RIGHT), Bound(value, PART_OF_LEFT))
+	
+	@classmethod
+	def closed(cls, lower_bound: float, upper_bound: float):
+		return Interval(Bound(lower_bound, PART_OF_RIGHT), Bound(upper_bound, PART_OF_LEFT))
+	
+	@classmethod
+	def open(cls, lower_bound: float, upper_bound: float):
+		return Interval(Bound(lower_bound, PART_OF_LEFT), Bound(upper_bound, PART_OF_RIGHT))
+	
+	@classmethod
+	def open_closed(cls, lower_bound: float, upper_bound: float):
+		return Interval(Bound(lower_bound, PART_OF_LEFT), Bound(upper_bound, PART_OF_LEFT))
+	
+	@classmethod
+	def closed_open(cls, lower_bound: float, upper_bound: float):
+		return Interval(Bound(lower_bound, PART_OF_RIGHT), Bound(upper_bound, PART_OF_RIGHT))
+	
+	@classmethod
+	def inf_open(cls, upper_bound: float):
+		return Interval(iBound_Negative_Infinity, Bound(upper_bound, PART_OF_RIGHT))
+	
+	@classmethod
+	def open_inf(cls, lower_bound: float):
+		return Interval(Bound(lower_bound, PART_OF_LEFT), iBound_Positive_Infinity)
+	
+	@classmethod
+	def closed_inf(cls, lower_bound: float):
+		return Interval(Bound(lower_bound, PART_OF_RIGHT), iBound_Positive_Infinity)
+	
+	@classmethod
+	def inf_closed(cls, upper_bound: float):
+		return Interval(iBound_Negative_Infinity, Bound(upper_bound, PART_OF_LEFT))
+	
+	@classmethod
+	def empty(cls):
+		"""returns a null or non-interval which is still of the type Collection[iInterval] but will yield no items"""
+		from .Multi_Interval import Multi_Interval
+		return Multi_Interval([])
+	
+	@classmethod
+	def coerce_collection_to_Interval_or_Multi_Interval(cls, collection: Collection[Interval]):
+		return ops.coerce_collection_to_Interval_or_Multi_Interval(collection)
+	
+	@classmethod
+	def coerce_collection_to_Interval_or_None(cls, collection: Collection[Interval]):
+		return ops.coerce_collection_to_Interval_or_Multi_Interval(collection)
+	
+	def __init__(self, lower_bound: Bound, upper_bound: Bound):
+		if not (isinstance(lower_bound, Bound) and isinstance(upper_bound, Bound)):
+			raise TypeError("Bounds must be an instance of iBound")
+		
+		self.__lower_bound: Bound = lower_bound
+		self.__upper_bound: Bound = upper_bound
+		
+		self._linked_objects = tuple()
+		# TODO: consider returning iInterval.empty() instead of throwing exception.
+		#  I am inclined to keep the exceptions as they (may?) prevent hard to track bugs elsewhere in the library
+		if lower_bound.value == upper_bound.value:
+			if not(self.__lower_bound.part_of_right and self.__upper_bound.part_of_left):
+				raise Exception(f"Degenerate intervals (lower_bound==upper_bound) are only permitted when both bounds are closed.")
+		elif math.isclose(lower_bound.value, upper_bound.value):
+			raise Exception(f"Infinitesimal intervals are not cool: {lower_bound} <= {upper_bound} == {lower_bound<=upper_bound} they must be eliminated in user code to avoid weird bugs in this interval library. use math.isclose() to test if the bounds are close. then either discard them, or make the bounds exactly equal to each other. Note that Degenerate intervals (lower_bound==upper_bound) are only permitted when both bounds are closed.")
+		elif lower_bound.value > upper_bound.value:
+			raise Exception(f"reversed intervals are not permitted. lower_bound.value must be less than or equal to upper_bound.value: {lower_bound} <= {upper_bound} == {lower_bound.value<=upper_bound.value}")
+		
+	def __format__(self, format_spec):
+		char_left = f"{format(float(self.__lower_bound.value), format_spec)}"
+		char_right = f"{format(float(self.__upper_bound.value), format_spec)}"
+		
+		if self.__lower_bound == iBound_Negative_Infinity:
+			char_left = "-∞"
+		
+		if self.__upper_bound == iBound_Positive_Infinity:
+			char_right = "+∞"
+		
+		if self.__lower_bound.part_of_right:
+			char_left = "≤"+char_left  # ≤ [
+		else:
+			char_left = "<" + char_left  # < (
+		
+		if self.__upper_bound.part_of_left:
+			char_right = char_right+"≥"  # ≥ ]
+		else:
+			char_right = char_right+">"  # > )
+		return f"{char_left}, {char_right}"
+		
+	def __repr__(self):
+		return format(self, ".2f")
+	
+	def __iter__(self):
+		return iter((self,))
+	
+	def __len__(self):
+		return 1
+	
+	def __bool__(self):
+		return True
+	
+	def __contains__(self, item):
+		return self == item
+	
+	def __eq__(self, other):
+		return ops.eq(self, other)
+	
+	def __hash__(self):
+		return hash((self.__lower_bound.__hash__(), self.__upper_bound.__hash__()))
 	
 	def print(self):
 		"""
 		prints intervals and multi intervals like this for debugging (only works for integer intervals):
-		  ├─────┤
-			├──────┤    ├────┤
+		╠═════╣
+			╠═════╣    ╞═══╣
 		"""
-		out = f"{self.start: 5.0f} {self.end: 5.0f} :"
-		for i in range(int(self.end) + 1):
-			if i < self.start:
+		lbv = round(self.__lower_bound.value) if math.isfinite(self.__lower_bound.value) else (-999 if self.__lower_bound.value == float('-inf') else 999)
+		ubv = round(self.__upper_bound.value) if math.isfinite(self.__upper_bound.value) else (-999 if self.__upper_bound.value == float('-inf') else 999)
+		out = f"{self:2.0f} :"
+		for i in range(0, min(50, ubv) + 1):
+			if i < lbv:
 				out += " "
-			elif self.start == i == self.end:
-				out += "│"
-			elif i == self.start:
-				out += "├"
-			elif i == self.end:
-				out += "┤"
-			else:
-				out += "─"
-		print(out)
-	
-	def __format__(self, format_spec):
-		return f"{self.__class__.__name__}({format(self.start, format_spec)}, {format(self.end, format_spec)})"
-	
-	def __repr__(self):
-		return self.__format__(".2f")
-	
-	def __getitem__(self, item):
-		if item == 0:
-			return self.start
-		elif item == 1:
-			return self.end
-		else:
-			raise IndexError(f"Interval has only index [0] and [1]. tried to access {item}")
-	
-	def copy(self):
-		return type(self)(self.start, self.end)
-	
-	def interpolate(self, ratio: float) -> Any:
-		return (self.end - self.start) * ratio + self.start
-	
-	@property
-	def is_ordered(self) -> bool:
-		"""
-		:return: True, if interval start <= end, False otherwise
-		"""
-		return self.start <= self.end
-	
-	@property
-	def is_infinitesimal(self) -> bool:
-		"""
-		:return: True, if interval start isclose to end, False otherwise
-		"""
-		return math.isclose(self.start, self.end)
-	
-	@property
-	def length(self) -> Any:
-		return self.end - self.start
-	
-	def point_is_within(self, point: Any) -> bool:
-		return self.start < point < self.end
-	
-	def point_touches(self, point: Any) -> bool:
-		return not self.point_is_within(point) and (math.isclose(self.start, point) or math.isclose(self.end, point))
-	
-	def get_ordered(self) -> Interval:
-		return Interval(
-			min(self.start, self.end),
-			max(self.start, self.end)
-		)
-	
-	def intersect(self, other: Union[Interval, Multi_Interval]) -> Union[Interval, Multi_Interval, None]:
-		"""
-		No floating point weirdness is accounted for. Will return zero-length and 'infinitesimal' intersections
-		if a multi_interval is passed in, the structure of the original multi interval is preserved;
-		 we will simply return a new multi_interval where every sub_interval is the result of intersecting the old sub_intervals with this interval
-		:param other:
-		:return:
-		"""
-		if isinstance(other, Multi_Interval):
-			result = Multi_Interval([])
-			for sub_interval in other.intervals:
-				f = self.intersect(sub_interval)
-				if f is not None:
-					result.add_overlapping(f)
-			if not result.intervals:
-				return None
-			else:
-				return result
-		elif isinstance(other, Interval):
-			
-			#  |---|
-			#        |---|
-			if self.end < other.start:  # less than but not equal; zero length intersection will pass over
-				return None
-			
-			#        |---|
-			#  |---|
-			if self.start > other.end:  # greater than but not equal; zero length intersection will pass over
-				return None
-			
-			if self.start <= other.start:  # accepts equality; in the case of zero length intersections both return statements below are equivalent
-				#  |---|
-				#    |---|
-				if self.end < other.end:
-					return type(self)(other.start, self.end)
-				
-				#  |-------|
-				#    |---|
-				return type(self)(other.start, other.end)
-			
-			if self.start <= other.end:
-				#    |---|
-				#  |-------|
-				if self.end < other.end:
-					return type(self)(self.start, self.end)
-				
-				#    |---|
-				#  |---|
-				return type(self)(self.start, other.end)
-		else:
-			raise Exception("Interval.intersect() has failed to find a valid branch. Has there been a type error?")
-	
-	def intersects(self, other: Interval) -> bool:
-		if isinstance(other, Multi_Interval):
-			result = Multi_Interval([])
-			for sub_interval in other.intervals:
-				if self.intersects(sub_interval):
-					return True
-			return False
-		elif isinstance(other, Interval):
-			
-			#  |---|
-			#        |---|
-			if self.end < other.start:  # less than but not equal; zero length intersection will pass over
-				return False
-			
-			#        |---|
-			#  |---|
-			if self.start > other.end:  # greater than but not equal; zero length intersection will pass over
-				return False
-			
-			if self.start <= other.start:  # accepts equality; in the case of zero length intersections both return statements below are equivalent
-				#  |---|
-				#    |---|
-				if self.end < other.end:
-					return True
-				
-				#  |-------|
-				#    |---|
-				return True
-			
-			if self.start <= other.end:
-				#    |---|
-				#  |-------|
-				if self.end < other.end:
-					return True
-				
-				#    |---|
-				#  |---|
-				return True
-		else:
-			raise Exception("Interval.intersects() failed to find a valid branch. Has there been a type error?")
-	
-	def contains(self, other: Interval, allow_inside_touching: bool = False) -> bool:
-		if isinstance(other, Multi_Interval):
-			return self.contains(other.hull())
-		elif isinstance(other, Interval):
-			# self:     |---|
-			# other:  |-------|
-			if allow_inside_touching:
-				return (other.end <= self.end or math.isclose(other.end, self.end)) and (other.start >= self.start or math.isclose(other.start, self.start))
-			else:
-				return other.end < self.end and other.start > self.start
-		else:
-			try:
-				return self.end > float(other) > self.start
-			except Exception as e:
-				raise Exception("Interval.intersects() failed to find a valid branch. Has there been a type error?") from e
-	
-	def relate_DE_9IM(self, other: Interval):
-		# 			Interior Boundary Exterior
-		# Interior  T/F      T/F      T/F
-		# Boundary  T/F      T/F      T/F
-		# Exterior  T/F      T/F      T/F
-		#
-		# represented as [9]
-		raise Exception("not implemented: very hard with floating points.")
-		pass
-	
-	def union(self, other: Interval) -> Union[Interval, Multi_Interval]:
-		if self.intersect(other) is not None:
-			return self.hull(other)
-		else:
-			return Multi_Interval((self, other))
-	
-	def hull(self, other: Interval) -> Interval:
-		return type(self)(min(self.start, other.start), max(self.end, other.end))
-	
-	def touches(self, other: Interval):
-		"""
-		:return: True if touching but not intersecting; ie self.start>=other.end and self.start isclose to other.end
-		touches will return True if two adjacent intervals should be merged, but intersects() has returned False.
-		"""
-		if self.start >= other.end and math.isclose(self.start, other.end):
-			return True
-		if self.end <= other.start and math.isclose(self.end, other.start):
-			return True
-		return False
-	
-	def subtract(self, other: Union[Interval, Multi_Interval]) -> Union[Interval, Multi_Interval, None]:
-		if isinstance(other, Multi_Interval):
-			result = self.copy()
-			for sub_interval in other.intervals:
-				result = result.subtract(sub_interval)
-			return result
-		elif isinstance(other, Interval):
-			
-			#  |---|
-			#        |---|
-			if self.end <= other.start:
-				return self.copy()
-			
-			#        |---|
-			#  |---|
-			if self.start >= other.end:
-				return self.copy()
-			
-			if self.start <= other.start:
-				#  |---|
-				#    |---|
-				if self.end < other.end:
-					return type(self)(self.start, other.start)
-				
-				#  |-------|
-				#    |---|
-				return Multi_Interval((type(self)(self.start, other.start), type(self)(other.end, self.end)))
-			
-			if self.start < other.end:
-				#    |---|
-				#  |-------|
-				if self.end < other.end:
-					return None
-				
-				#    |---|
-				#  |---|
-				return type(self)(other.end, self.end)
-			
-			raise ValueError("Interval.subtract() had some kind of malfunction and did not find a result")
-		else:
-			raise NotImplementedError("Cannot subtract unknown type")
-
-
-class Multi_Interval:
-	
-	def __init__(self, iter_intervals: Iterable[Interval]):
-		""" Intervals provided to this initialiser are added without further processing.
-		"""
-		self.intervals: List[Interval] = []
-		
-		for interval in iter_intervals:
-			self.intervals.append(interval)
-	
-	def __format__(self, format_spec):
-		return f"Multi_Interval[{len(self.intervals)}]([{', '.join(['...' + str(len(self.intervals)) if index == 4 else format(interval, format_spec) for index, interval in enumerate(self.intervals) if index < 5])}])"
-	
-	def __repr__(self):
-		return self.__format__(".2f")
-	
-	def print(self):
-		print("Multi_Interval:")
-		for sub_interval in self.intervals:
-			sub_interval.print()
-		print("")
-	
-	def __bool__(self):
-		return bool(self.intervals)
-	
-	def copy(self) -> Multi_Interval:
-		return type(self)([interval.copy() for interval in self.intervals]);
-	
-	@property
-	def start(self):
-		if self.intervals:
-			min_so_far = self.intervals[0].start
-			for item in self.intervals:
-				min_so_far = min(min_so_far, item.start)
-			return min_so_far
-		else:
-			return None
-	
-	@property
-	def end(self):
-		if self.intervals:
-			max_so_far = self.intervals[0].end
-			for item in self.intervals:
-				max_so_far = max(max_so_far, item.end)
-			return max_so_far
-		else:
-			return None
-	
-	@property
-	def is_valid(self) -> Union[bool, None]:
-		if self.intervals:
-			for item in self.intervals:
-				if not item.is_ordered:
-					return False
-			return True
-		else:
-			return None
-	
-	def subtract(self, interval_to_subtract: Interval):
-		new_interval_list = []
-		for interval in self.intervals:
-			if interval.intersect(interval_to_subtract):
-				f = interval.subtract(interval_to_subtract)
-				if f is not None:
-					try:
-						# assume f is a Multi_Interval
-						for pieces in f.intervals:
-							new_interval_list.append(pieces)
-					except:
-						# f is an Interval
-						new_interval_list.append(f)
-			else:
-				new_interval_list.append(interval)
-		self.intervals = new_interval_list
-		return self
-	
-	def add_overlapping(self, interval: Union[Interval, Multi_Interval]) -> Multi_Interval:
-		"""Add to multi interval without further processing. Overlapping intervals will be preserved.
-		this is similar to doing: MultiInterval().intervals.append(Interval()) except it also works on Multi_Intervals
-		:return: self
-		"""
-		if isinstance(interval, Interval):
-			self.intervals.append(interval.copy())
-		elif isinstance(interval, Multi_Interval):
-			for sub_interval in interval.intervals:
-				self.intervals.append(sub_interval.copy())
-		else:
-			raise ValueError()
-		return self
-	
-	def add_hard(self, interval_to_add: Interval) -> Multi_Interval:
-		"""Add to multi interval, truncating or deleting existing intervals to prevent overlaps with the new interval
-		will result in touching intervals being maintained
-		may result in infinitesimal interval being added
-		:return: self
-		"""
-		# TODO: Make multi interval compatible
-		self.subtract(interval_to_add)
-		self.add_overlapping(interval_to_add)
-		return self
-	
-	def add_soft(self, interval_to_add: Interval) -> Multi_Interval:
-		"""Add Interval() to Multi_Interval(), truncating or ignoring the new interval to prevent overlaps with existing intervals
-		will result in touching intervals being maintained
-		may result in infinitesimal interval being added
-		:return: self
-		"""
-		# TODO: Make multi interval compatible
-		for interval in self.intervals:
-			if interval.intersects(interval_to_add):
-				interval_to_add = interval_to_add.subtract(interval)
-				if interval_to_add is None:
-					break
-		
-		if isinstance(interval_to_add, Multi_Interval):
-			for sub_interval in interval_to_add.intervals:
-				self.intervals.append(sub_interval.copy())
-		elif isinstance(interval_to_add, Interval):
-			self.add_overlapping(interval_to_add)
-		elif interval_to_add is None:
-			pass
-		else:
-			raise Exception("add soft failed")
-		
-		return self
-	
-	def add_merge(self, interval_to_add: Interval) -> Multi_Interval:
-		"""Add Interval() to Multi_Interval(), merge with any overlapping or touching intervals to prevent overlaps
-		preserves existing intervals that are touching, only merges existing intervals which touch or intersect with the new interval
-		:return: self
-		"""
-		# TODO: Make multi interval compatible
-		
-		original_interval_to_add = interval_to_add
-		
-		must_restart = True
-		while must_restart:
-			must_restart = False
-			for interval in self.intervals:
-				if interval.intersects(original_interval_to_add) or interval.touches(original_interval_to_add):
-					interval_to_add = interval_to_add.hull(interval)
-					self.intervals.remove(interval)
-					must_restart = True
-					break
-		self.intervals.append(interval_to_add)
-		return self
-	
-	def intersection(self, arg_interval: Union[Interval, Multi_Interval]) -> Multi_Interval:
-		if isinstance(arg_interval, Multi_Interval):
-			result_multi_interval: Multi_Interval = type(self)([])
-			for my_interval in self.intervals:
-				for other_interval in arg_interval.intervals:
-					result_multi_interval.add_soft(my_interval.intersect(other_interval))
-			return result_multi_interval.delete_infinitesimal()
-		elif isinstance(arg_interval, Interval):
-			result_multi_interval: Multi_Interval = type(self)([])
-			for my_interval in self.intervals:
-				result_multi_interval.add_soft(my_interval.intersect(arg_interval))
-			return result_multi_interval.delete_infinitesimal()
-		else:
-			raise Exception("Type error in MultiInterval().intersection()")
-	
-	def merge_touching_and_intersecting(self) -> Multi_Interval:
-		"""
-		:return: eliminates all touching or intersecting intervals by merging
-		"""
-		must_restart = True
-		while must_restart:
-			must_restart = False
-			for a, b in itertools.combinations(self.intervals, 2):
-				if a.intersects(b) or a.touches(b):
-					c = a.hull(b)
-					self.intervals.remove(a)
-					self.intervals.remove(b)
-					self.intervals.append(c)
-					must_restart = True
-					break
-		return self
-	
-	def delete_infinitesimal(self) -> Multi_Interval:
-		self.intervals = [item for item in self.intervals if not item.has_infinitesimal]
-		return self
-	
-	def make_all_positive(self):
-		self.intervals = [interval.get_ordered() for interval in self.intervals]
-		return self
-	
-	def hull(self) -> Union[Interval, None]:
-		if not self.intervals:
-			return None
-		else:
-			result = None
-			for sub_interval in self.intervals:
-				if result is None:
-					result = sub_interval.copy()
+			elif lbv == i == ubv:
+				out += "║"
+			elif i == lbv:
+				if self.__lower_bound.part_of_right:
+					out += "╠"
 				else:
-					result = result.hull(sub_interval)
-			return result
+					out += "╞"
+			elif i == ubv:
+				if self.__upper_bound.part_of_left:
+					out += "╣"
+				else:
+					out += "╡"
+			else:
+				out += "═"
+		print(out)
+		return self
+	
+	@property
+	def lower_bound(self) -> Bound:
+		return self.__lower_bound
+	
+	@property
+	def upper_bound(self) -> Bound:
+		return self.__upper_bound
+	
+	def get_linked_bounds(self) -> Collection[Linked_Bound]:
+		return ops.get_linked_bounds(self)
+	
+	@property
+	def has_degenerate(self) -> bool:
+		return ops.has_degenerate(self)
+	
+	@property
+	def is_complete(self) -> bool:
+		return ops.is_complete(self)
+	
+	@ property
+	def length(self) -> float:
+		return self.__upper_bound.value - self.__lower_bound.value
+	
+	def interpolate(self, ratio: float) -> float:
+		return self.__lower_bound.value + (self.__upper_bound.value - self.__lower_bound.value) * ratio
+	
+	def contains_value(self, value: float) -> bool:
+		return ops.contains_value(self, value)
+	
+	def contains_interval(self, other: Collection[Interval]) -> bool:
+		return ops.contains_interval(self, other)
+	
+	def touches(self, other: Collection[Interval]) -> bool:
+		return ops.touches(self, other)
+	
+	def intersects(self, other: Collection[Interval]) -> bool:
+		return ops.intersects(self, other)
+	
+	def disjoint(self, other: Collection[Interval]) -> bool:
+		return not ops.intersects(self, other)
+	
+	@property
+	def exterior(self) -> Collection[Interval]:
+		return ops.coerce_collection_to_Interval_or_Multi_Interval(ops.exterior(self))
+	
+	@property
+	def interior(self) -> Collection[Interval]:
+		return ops.coerce_collection_to_Interval_or_Multi_Interval(ops.interior(self))
+	
+	def intersect(self, other: Collection[Interval]) -> Collection[Interval]:
+		return ops.coerce_collection_to_Interval_or_Multi_Interval(ops.intersect(self, other))
+	
+	def subtract(self, other: Collection[Interval]) -> Multi_Interval:
+		return ops.coerce_collection_to_Interval_or_Multi_Interval(ops.subtract(self, other))
+	
+	def hull(self, other: Iterable[Interval] = tuple()):
+		return ops.coerce_collection_to_Interval_or_Multi_Interval(ops.hull(itertools.chain(self, other)))
+	
+	def union(self, other: Iterable[Interval]) -> Collection[Interval]:
+		return ops.coerce_collection_to_Interval_or_Multi_Interval([*itertools.chain(self, other)])
+	
+	def scaled(self, scale_factor: float):
+		return ops.coerce_collection_to_Interval_or_Multi_Interval(ops.scaled(self, scale_factor))
+	
+	def translated(self, translation: float):
+		return ops.coerce_collection_to_Interval_or_Multi_Interval(ops.translated(self, translation))
+	
+	def scaled_then_translated(self, scale_factor: float, translation: float):
+		return ops.coerce_collection_to_Interval_or_Multi_Interval(ops.scaled_then_translated(self, scale_factor, translation))
+	
+	def translated_then_scaled(self, translation: float, scale_factor: float):
+		return ops.coerce_collection_to_Interval_or_Multi_Interval(ops.translated_then_scaled(self, translation, scale_factor))
+	
+	#####################
+	# UNION OPERATIONS
+	#####################
+	# TODO: Union of two interval sets is hard to define.
+	#  the default behaviour of all functions is to maintain the structure of the input multi-interval
+	#  union may imply a flattening of self and other intervals, just the other intervals, just the self or neither.
+	#  the default will be neither. But t avoid confusion, union will be named 'union_keeping_overlaps'
+	def union_keeping_overlaps(self, other: Iterable[Interval]):
+		return ops.coerce_collection_to_Interval_or_Multi_Interval([*self, *other])
+	
+	def union_merge_intersecting(self, other: Iterable[Interval]):
+		return ops.coerce_collection_to_Interval_or_Multi_Interval(ops.union_merge_intersecting(self, other))
+	
+	def union_merge_intersecting_or_touching(self, other: Iterable[Interval]):
+		return ops.coerce_collection_to_Interval_or_Multi_Interval(ops.union_merge_intersecting_or_touching(self, other))
+
+	def union_merge_touching(self, other: Iterable[Interval]):
+		return ops.coerce_collection_to_Interval_or_Multi_Interval(ops.union_merge_touching(self, other))
+	
+	def merge_intersecting(self):
+		return ops.coerce_collection_to_Interval_or_Multi_Interval(ops.union_merge_intersecting([], self))
+	
+	def merge_intersecting_or_touching(self):
+		return ops.coerce_collection_to_Interval_or_Multi_Interval(ops.union_merge_intersecting_or_touching([], self))
+	
+	def merge_touching(self):
+		return ops.coerce_collection_to_Interval_or_Multi_Interval(ops.union_merge_touching([], self))
+		
+	def link_merge(self, linked_objects):
+		return Linked_Interval(self, (*self._linked_objects, *linked_objects))
+	
+	def link_replace(self, linked_objects):
+		return Linked_Interval(self, linked_objects)
+	
+	def link_remove(self, linked_objects):
+		return Linked_Interval(self, (lo for lo in linked_objects if lo not in linked_objects))
+	
+	def unlink(self):
+		return Interval(self.__lower_bound, self.__upper_bound)
+	
+	@property
+	def linked_objects(self):
+		return self._linked_objects
+
+
+# TODO: consider building this into the base class
+#  then changing all _operators to merge or split the content of the linked_objects array
+#  then we can dispense with the linked objects array
+class Linked_Interval(Interval, Generic[T]):
+	def __init__(self, original_iInterval: Interval, linked_objects: Iterable[T]):
+		super().__init__(original_iInterval.lower_bound, original_iInterval.upper_bound)
+		self._linked_objects = tuple(linked_objects)

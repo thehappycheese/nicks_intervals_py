@@ -2,45 +2,50 @@ from __future__ import annotations
 
 import itertools
 import math
-from typing import TypeVar, Generator, Tuple, TYPE_CHECKING, List, Sized, Collection, Union, Iterable, Iterator, Callable
+from typing import TypeVar, Generator, Tuple, TYPE_CHECKING, List, Sized, Collection, Union, Iterable, Iterator, Callable, Sequence, Optional
 
 from NicksIntervals import util
-from NicksIntervals.iBound import iBound, iBound_Negative_Infinity, iBound_Positive_Infinity, Linked_iBound
+from NicksIntervals.Bound import Bound, iBound_Negative_Infinity, iBound_Positive_Infinity, Linked_Bound
 
 
 if TYPE_CHECKING:
-	from NicksIntervals.iInterval import iInterval
-	from NicksIntervals.iInterval import Linked_iInterval
-	from NicksIntervals.iMulti_iInterval import iMulti_iInterval
+	from NicksIntervals.Interval_Map import Interval_Link
+	from NicksIntervals.Interval import Interval
+	from NicksIntervals.Interval import Linked_Interval
+	from NicksIntervals.Multi_Interval import Multi_Interval
 
 T = TypeVar('T')
 
 
-def scaled(a: Iterable[iInterval], scale_factor: float) -> Collection[iInterval]:
-	from .iInterval import iInterval
-	return [iInterval(a_interval.lower_bound.scaled(scale_factor), a_interval.upper_bound.scaled(scale_factor)) for a_interval in a]
+def scaled(a: Iterable[Interval], scale_factor: float) -> Collection[Interval]:
+	from .Interval import Interval
+	return [Interval(a_interval.lower_bound.scaled(scale_factor), a_interval.upper_bound.scaled(scale_factor)) for a_interval in a]
 
 
-def translated(a: Iterable[iInterval], translation: float) -> Collection[iInterval]:
-	from .iInterval import iInterval
-	return [iInterval(a_interval.lower_bound.translated(translation), a_interval.upper_bound.translated(translation)) for a_interval in a]
+def translated(a: Iterable[Interval], translation: float) -> Collection[Interval]:
+	from .Interval import Interval
+	return [Interval(a_interval.lower_bound.translated(translation), a_interval.upper_bound.translated(translation)) for a_interval in a]
 
 
-def scaled_then_translated(a: Iterable[iInterval], scale_factor: float, translation: float):
-	from .iInterval import iInterval
-	return [iInterval(a_interval.lower_bound.scaled_then_translated(scale_factor, translation), a_interval.upper_bound.scaled_then_translated(scale_factor, translation)) for a_interval in a]
+def scaled_then_translated(a: Iterable[Interval], scale_factor: float, translation: float):
+	from .Interval import Interval
+	return [Interval(a_interval.lower_bound.scaled_then_translated(scale_factor, translation), a_interval.upper_bound.scaled_then_translated(scale_factor, translation)) for a_interval in a]
 
 
-def translated_then_scaled(a: Iterable[iInterval], translation: float, scale_factor: float):
-	from .iInterval import iInterval
-	return [iInterval(a_interval.lower_bound.translated_then_scaled(translation, scale_factor), a_interval.upper_bound.translated_then_scaled(translation, scale_factor)) for a_interval in a]
+def translated_then_scaled(a: Iterable[Interval], translation: float, scale_factor: float):
+	from .Interval import Interval
+	return [Interval(a_interval.lower_bound.translated_then_scaled(translation, scale_factor), a_interval.upper_bound.translated_then_scaled(translation, scale_factor)) for a_interval in a]
 
 
-def apply_interval_map_to_interval_atomic(map_from: iInterval, map_to: iInterval, interval: iInterval) -> Collection[iInterval]:
-	result = []
+def apply_interval_map_to_interval_atomic(map_from: Interval, map_to: Interval, interval: Interval) -> Collection[Interval]:
+	
+	if map_from.length == 0:
+		if intersects(map_from, interval):
+			return [map_to]
+		else:
+			return []
 	scale_factor = map_to.length / map_from.length
-	result.extend(
-		intersect(
+	return [* intersect(  # this intersect with map_to required? Yes: it confirms that the bound directions of the result comply with map_to
 			scaled_then_translated(
 				translated(
 					intersect(map_from, interval),
@@ -51,19 +56,18 @@ def apply_interval_map_to_interval_atomic(map_from: iInterval, map_to: iInterval
 			),
 			map_to
 		)
-	)
-	return result
+	]
 
 
-def apply_interval_maps_to_intervals(maps: Iterable[Tuple[iInterval, iInterval]], a: Iterable[iInterval]) -> Collection[iInterval]:
+def apply_interval_maps_to_intervals(iterable_of_links: Iterable[Sequence[Interval]], a: Iterable[Interval]) -> Collection[Interval]:
 	result = []
 	for a_interval in a:
-		for map_from, map_to in maps:
-			result.extend(apply_interval_map_to_interval_atomic(map_from, map_to, a_interval))
+		for link_sequence in iterable_of_links:
+			result.extend(apply_interval_map_to_interval_atomic(link_sequence[0], link_sequence[-1], a_interval))
 	return result
 
 
-def apply_interval_map_to_value_atomic(map_from: iInterval, map_to: iInterval, value: float) -> Tuple[float, ...]:
+def apply_interval_map_to_value_atomic(map_from: Interval, map_to: Interval, value: float) -> Tuple[float, ...]:
 	if contains_value_atomic(map_from, value):
 		scale_factor = map_to.length / map_from.length
 		result_value = (value-map_from.lower_bound.value) * scale_factor + map_to.lower_bound.value
@@ -72,26 +76,26 @@ def apply_interval_map_to_value_atomic(map_from: iInterval, map_to: iInterval, v
 	return tuple()
 
 
-def apply_interval_maps_to_value(maps: Iterable[Tuple[iInterval, iInterval]], value: float) -> Collection[float]:
+def apply_interval_maps_to_value(iterable_of_links: Iterable[Sequence[Interval]], value: float) -> Collection[float]:
 	result = []
-	for map_from, map_to in maps:
-		result.extend(apply_interval_map_to_value_atomic(map_from, map_to, value))
+	for link_sequence in iterable_of_links:
+		result.extend(apply_interval_map_to_value_atomic(link_sequence[0], link_sequence[-1], value))
 	return result
 
 
 # TODO: The term 'degenerate' is a bit ambiguous. Is it preferable to change all code to use iInterval.length == 0? This is easier to understand at a glance.
-def is_degenerate_atomic(a: iInterval):
+def is_degenerate_atomic(a: Interval):
 	if a.lower_bound.value == a.upper_bound.value:
 		if a.lower_bound.part_of_right and a.upper_bound.part_of_left:  # TODO: it is impossible to construct an interval that does not meet condition, if the above condition is met. This check is redundant
 			return True
 	return False
 
 
-def has_degenerate(a: Collection[iInterval]):
+def has_degenerate(a: Collection[Interval]):
 	return any(is_degenerate_atomic(a_interval) for a_interval in a)
 
 
-def get_bounds(a: Iterable[iInterval]) -> List[iBound]:
+def get_bounds(a: Iterable[Interval]) -> List[Bound]:
 	return list(
 		itertools.chain.from_iterable([
 			a_interval.lower_bound,
@@ -99,7 +103,7 @@ def get_bounds(a: Iterable[iInterval]) -> List[iBound]:
 			] for a_interval in a))
 
 
-def get_linked_bounds(a: Iterable[iInterval]) -> List[Linked_iBound]:
+def get_linked_bounds(a: Iterable[Interval]) -> List[Linked_Bound]:
 	return list(
 		itertools.chain.from_iterable((
 			a_interval.lower_bound.get_Linked_iBound(linked_interval=a_interval, is_lower_bound=True),
@@ -107,23 +111,23 @@ def get_linked_bounds(a: Iterable[iInterval]) -> List[Linked_iBound]:
 		)) for a_interval in a))
 
 
-def get_linked_intervals(a: Iterable[iInterval], linked_objects: Iterable[T]) -> Iterable[Linked_iInterval[T]]:
-	from NicksIntervals.iInterval import Linked_iInterval
-	return list(Linked_iInterval(a_interval, linked_objects) for a_interval in a)
+def get_linked_intervals(a: Iterable[Interval], linked_objects: Iterable[T]) -> Iterable[Linked_Interval[T]]:
+	from NicksIntervals.Interval import Linked_Interval
+	return list(Linked_Interval(a_interval, linked_objects) for a_interval in a)
 
 
-def is_complete(a: Collection[iInterval]) -> bool:
+def is_complete(a: Collection[Interval]) -> bool:
 	bounds = sorted(get_bounds(a))
 	if len(bounds) < 2:
 		return False
 	return bounds[0] == iBound_Negative_Infinity and bounds[-1] == iBound_Positive_Infinity
 
 
-def is_empty(a: Sized[iInterval]):
+def is_empty(a: Sized[Interval]):
 	return len(a) == 0
 
 
-def subtract_based_on_atomics(a: Iterable[iInterval], b: Iterable[iInterval]) -> Collection[iInterval]:
+def subtract_based_on_atomics(a: Iterable[Interval], b: Iterable[Interval]) -> Collection[Interval]:
 	# The performance of this algorithm on any multi_interval with many sub intervals is abysmal.
 	#  must be reimplemented as a line-sweep for decent performance. This stays here for testing purposes.
 	result = a
@@ -137,7 +141,7 @@ def subtract_based_on_atomics(a: Iterable[iInterval], b: Iterable[iInterval]) ->
 	return result
 
 
-def subtract_and_flatten(minuend: Iterable[iInterval], subtrahend: Iterable[iInterval]) -> Collection[iInterval]:
+def subtract_and_flatten(minuend: Iterable[Interval], subtrahend: Iterable[Interval]) -> Collection[Interval]:
 	""" minuend - subtrahend = difference
 	"""
 	# TODO: this function is a bit useless since it causes potentially unwanted flattening of the minuend if the minuend is a multi-interval
@@ -152,12 +156,12 @@ def subtract_and_flatten(minuend: Iterable[iInterval], subtrahend: Iterable[iInt
 	subtrahend_stack_count_before = 0
 	subtrahend_stack_count_after = 0
 	for current_bound in sorted_link_bounds:
-		if current_bound.interval.__linked_objects is minuend:
+		if current_bound.interval._linked_objects is minuend:
 			if current_bound.is_lower_bound:
 				minuend_stack_count_after += 1
 			else:
 				minuend_stack_count_after -= 1
-		elif current_bound.interval.__linked_objects is subtrahend:
+		elif current_bound.interval._linked_objects is subtrahend:
 			if current_bound.is_lower_bound:
 				subtrahend_stack_count_after += 1
 			else:
@@ -171,19 +175,23 @@ def subtract_and_flatten(minuend: Iterable[iInterval], subtrahend: Iterable[iInt
 		minuend_stack_count_before = minuend_stack_count_after
 		subtrahend_stack_count_before = subtrahend_stack_count_after
 
-	from .iInterval import iInterval
-	return [iInterval(lower_bound, upper_bound) for lower_bound, upper_bound in util.iter_consecutive_disjoint_pairs(bound_list) if lower_bound != upper_bound]
+	from .Interval import Interval
+	return [Interval(lower_bound, upper_bound) for lower_bound, upper_bound in util.iter_consecutive_disjoint_pairs(bound_list) if lower_bound != upper_bound]
 
 
-def subtract(minuend: Iterable[iInterval], subtrahend: Iterable[iInterval]) -> Collection[iInterval]:
-	from .iInterval import iInterval
+def subtract(minuend: Iterable[Interval], subtrahend: Iterable[Interval]) -> Collection[Interval]:
+	from .Interval import Interval
 	# minuend - subtrahend = difference
 	result = []
 	
+	# TODO: the pollution of the interval class with this linked object idea was not good and needs to be walked back.
+	#  the only significant place it is used is here... and a few other places that don't matter as much.
+	#  linked bounds will still be needed due to thier sorting behaviour, unless we make a function that does
+	#  that on something like a List[Tuple[bound:iBound, is_lower:bool, interval:Interval]]
 	sorted_link_bounds = sorted(itertools.chain(get_linked_bounds(get_linked_intervals(minuend, [minuend])), get_linked_bounds(get_linked_intervals(subtrahend, [subtrahend]))))
 	
-	minuend_intervals_awaiting_lower_bound: List[iInterval] = []
-	minuend_intervals_awaiting_upper_bound: List[Tuple[iInterval, Linked_iBound]] = []
+	minuend_intervals_awaiting_lower_bound: List[Interval] = []
+	minuend_intervals_awaiting_upper_bound: List[Tuple[Interval, Linked_Bound]] = []
 	
 	subtrahend_stack_count_previous = 0
 	subtrahend_stack_count = 0
@@ -210,14 +218,14 @@ def subtract(minuend: Iterable[iInterval], subtrahend: Iterable[iInterval]) -> C
 					interval_to_close = next(item for item in minuend_intervals_awaiting_upper_bound if item[0] == current_bound.interval)
 					minuend_intervals_awaiting_upper_bound.remove(interval_to_close)
 					if interval_to_close[1].bound != current_bound.bound:  # TODO: is this if statement necessary?
-						result.append(iInterval(interval_to_close[1].bound, current_bound.bound))
+						result.append(Interval(interval_to_close[1].bound, current_bound.bound))
 		
 		if subtrahend_stack_count > 0 and subtrahend_stack_count_previous == 0:  # a lower bound of subtrahend
 			# the current bound should be used to terminate all intervals in awaiting_upper_bound, and all these intervals should be moved into awaiting lower bound.
 			for awaiting_upper_bound in minuend_intervals_awaiting_upper_bound:
 				minuend_intervals_awaiting_lower_bound.append(awaiting_upper_bound[0])
 				if awaiting_upper_bound[1].bound != current_bound.bound:
-					result.append(iInterval(awaiting_upper_bound[1].bound, current_bound.bound))
+					result.append(Interval(awaiting_upper_bound[1].bound, current_bound.bound))
 			minuend_intervals_awaiting_upper_bound = []
 		elif subtrahend_stack_count == 0 and subtrahend_stack_count_previous > 0:  # an upper bound of subtrahend
 			# the current bound should be used to start all intervals in awaiting lower bound, and they should be moved into awaiting upper bound
@@ -230,8 +238,8 @@ def subtract(minuend: Iterable[iInterval], subtrahend: Iterable[iInterval]) -> C
 	return result
 
 
-def subtract_atomic(a: iInterval, b: iInterval) -> Collection[iInterval]:
-	from .iInterval import iInterval
+def subtract_atomic(a: Interval, b: Interval) -> Collection[Interval]:
+	from .Interval import Interval
 	other_contains_self_lower_bound = contains_lower_bound_atomic(b, a.lower_bound)
 	other_contains_self_upper_bound = contains_upper_bound_atomic(b, a.upper_bound)
 	
@@ -250,9 +258,9 @@ def subtract_atomic(a: iInterval, b: iInterval) -> Collection[iInterval]:
 	if self_contains_other_lower_bound and self_contains_other_upper_bound:
 		interim_result = []
 		if a.lower_bound != b.lower_bound:
-			interim_result.append(iInterval(a.lower_bound, b.lower_bound))
+			interim_result.append(Interval(a.lower_bound, b.lower_bound))
 		if b.upper_bound != a.upper_bound:
-			interim_result.append(iInterval(b.upper_bound, a.upper_bound))
+			interim_result.append(Interval(b.upper_bound, a.upper_bound))
 		return tuple(interim_result)
 	
 	#   self:        ╠══════════╣
@@ -260,7 +268,7 @@ def subtract_atomic(a: iInterval, b: iInterval) -> Collection[iInterval]:
 	# result:               ╞═══╣
 	if other_contains_self_lower_bound:
 		if b.upper_bound != a.upper_bound:
-			return tuple(iInterval(b.upper_bound, a.upper_bound))
+			return tuple(Interval(b.upper_bound, a.upper_bound))
 	
 	#   self:        ╠════╣
 	#  other:  ╠════════════╣
@@ -274,7 +282,7 @@ def subtract_atomic(a: iInterval, b: iInterval) -> Collection[iInterval]:
 	# result:    ╠═══╡
 	if other_contains_self_upper_bound:
 		if a.lower_bound != b.lower_bound:
-			return tuple(iInterval(a.lower_bound, b.lower_bound))
+			return tuple(Interval(a.lower_bound, b.lower_bound))
 	
 	# if execution makes it past all above continues, the only remaining possibility is that the intervals are disjoint
 	# in this case the entire first interval is output
@@ -282,14 +290,14 @@ def subtract_atomic(a: iInterval, b: iInterval) -> Collection[iInterval]:
 	return a
 
 
-def intersect(a: Collection[iInterval], b: Collection[iInterval]) -> Collection[iInterval]:
+def intersect(a: Collection[Interval], b: Collection[Interval]) -> Collection[Interval]:
 	# TODO: This will have abysmal performance on large datasets
 	#  I think it can be implemented as a sweep over linked bounds?
 	return subtract(a, exterior(b))
 
 
-def intersect_atomic(a: iInterval, b: iInterval) -> Collection[iInterval]:
-	from .iInterval import iInterval
+def intersect_atomic(a: Interval, b: Interval) -> Collection[Interval]:
+	from .Interval import Interval
 	self_contains_other_lower_bound = contains_lower_bound_atomic(a, b.lower_bound)
 	self_contains_other_upper_bound = contains_upper_bound_atomic(a, b.upper_bound)
 	
@@ -305,7 +313,7 @@ def intersect_atomic(a: iInterval, b: iInterval) -> Collection[iInterval]:
 	#  other:  ╠════════════╣
 	# result:        ╠══════╣
 	if other_contains_self_lower_bound:
-		return iInterval(a.lower_bound, b.upper_bound)
+		return Interval(a.lower_bound, b.upper_bound)
 	
 	other_contains_self_upper_bound = contains_upper_bound_atomic(b, a.upper_bound)
 	
@@ -319,16 +327,16 @@ def intersect_atomic(a: iInterval, b: iInterval) -> Collection[iInterval]:
 	#  other:        ╠════════════╣
 	# result:        ╠══════╣
 	if other_contains_self_upper_bound:
-		return iInterval(b.lower_bound, a.upper_bound)
+		return Interval(b.lower_bound, a.upper_bound)
 	
 	return tuple()
 
 
-def intersects(a: Collection[iInterval], b: Collection[iInterval]) -> bool:
+def intersects(a: Collection[Interval], b: Collection[Interval]) -> bool:
 	return any(intersects_atomic(a_interval, b_interval) for a_interval in a for b_interval in b)
 
 
-def intersects_atomic(a: iInterval, b: iInterval) -> bool:
+def intersects_atomic(a: Interval, b: Interval) -> bool:
 	return (
 		contains_lower_bound_atomic(a, b.lower_bound) or
 		contains_upper_bound_atomic(a, b.upper_bound) or
@@ -337,13 +345,13 @@ def intersects_atomic(a: iInterval, b: iInterval) -> bool:
 	)
 
 
-def touches(a: Collection[iInterval], b: Collection[iInterval]):
+def touches(a: Collection[Interval], b: Collection[Interval]):
 	if intersects(a, b):
 		return False
 	return any(touches_atomic(a_interval, b_interval) for a_interval in a for b_interval in b)
 
 
-def touches_atomic(a: iInterval, b: iInterval) -> bool:
+def touches_atomic(a: Interval, b: Interval) -> bool:
 	if math.isclose(a.lower_bound.value, b.upper_bound.value) and (a.lower_bound.part_of_right == b.upper_bound.part_of_right):
 		return True
 	if math.isclose(a.upper_bound.value, b.lower_bound.value) and (a.upper_bound.part_of_left == b.lower_bound.part_of_left):
@@ -351,11 +359,11 @@ def touches_atomic(a: iInterval, b: iInterval) -> bool:
 	return False
 
 
-def contains_value(a: Collection[iInterval], value: float) -> bool:
+def contains_value(a: Collection[Interval], value: float) -> bool:
 	return any(contains_value_atomic(interval, value) for interval in a)
 
 
-def contains_value_atomic(a: iInterval, value: float) -> bool:
+def contains_value_atomic(a: Interval, value: float) -> bool:
 	if math.isclose(a.lower_bound.value, value) and a.lower_bound.part_of_right:
 		return True
 	elif math.isclose(a.upper_bound.value, value) and a.upper_bound.part_of_left:
@@ -365,20 +373,20 @@ def contains_value_atomic(a: iInterval, value: float) -> bool:
 	return False
 
 
-def contains_interval(a: Collection[iInterval], b: Collection[iInterval]) -> bool:
+def contains_interval(a: Collection[Interval], b: Collection[Interval]) -> bool:
 	return all(
 		any(contains_interval_atomic(a_interval, b_interval) for a_interval in a) for b_interval in b
 	)
 
 
-def contains_interval_atomic(a: iInterval, b: iInterval) -> bool:
+def contains_interval_atomic(a: Interval, b: Interval) -> bool:
 	if is_degenerate_atomic(a) and is_degenerate_atomic(b) and math.isclose(a.lower_bound.value, b.lower_bound.value):
 		return True
 	else:
 		return contains_lower_bound_atomic(a, b.lower_bound) and contains_upper_bound_atomic(a, b.upper_bound)
 
 
-def contains_upper_bound_atomic(a: iInterval, upper_bound: iBound) -> bool:
+def contains_upper_bound_atomic(a: Interval, upper_bound: Bound) -> bool:
 	if is_degenerate_atomic(a) and math.isclose(a.lower_bound.value, upper_bound.value):
 		return upper_bound.part_of_left
 	else:
@@ -391,7 +399,7 @@ def contains_upper_bound_atomic(a: iInterval, upper_bound: iBound) -> bool:
 	return False
 
 
-def contains_lower_bound_atomic(a: iInterval, lower_bound: iBound) -> bool:
+def contains_lower_bound_atomic(a: Interval, lower_bound: Bound) -> bool:
 	if is_degenerate_atomic(a) and math.isclose(a.upper_bound.value, lower_bound.value):
 		return lower_bound.part_of_right
 	else:
@@ -404,56 +412,56 @@ def contains_lower_bound_atomic(a: iInterval, lower_bound: iBound) -> bool:
 	return False
 
 
-def left_exterior_atomic(a: iInterval) -> Collection[iInterval]:
+def left_exterior_atomic(a: Interval) -> Collection[Interval]:
 	if a.lower_bound == iBound_Negative_Infinity:
 		return tuple()
 	else:
-		from .iInterval import iInterval
-		return iInterval(iBound_Negative_Infinity, a.lower_bound)
+		from .Interval import Interval
+		return Interval(iBound_Negative_Infinity, a.lower_bound)
 
 
-def right_exterior_atomic(a: iInterval) -> Collection[iInterval]:
+def right_exterior_atomic(a: Interval) -> Collection[Interval]:
 	if a.upper_bound == iBound_Positive_Infinity:
 		return tuple()
 	else:
-		from .iInterval import iInterval
-		return iInterval(a.upper_bound, iBound_Positive_Infinity)
+		from .Interval import Interval
+		return Interval(a.upper_bound, iBound_Positive_Infinity)
 
 
-def exterior_atomic(a: iInterval) -> Collection[iInterval]:
+def exterior_atomic(a: Interval) -> Collection[Interval]:
 	return tuple(itertools.chain(left_exterior_atomic(a), right_exterior_atomic(a)))
 
 
-def exterior(a: Collection[iInterval]) -> Collection[iInterval]:
-	from .iInterval import iInterval
-	return coerce_iInterval_collection([
-		iInterval(lower_bound, upper_bound)
+def exterior(a: Collection[Interval]) -> Collection[Interval]:
+	from .Interval import Interval
+	return coerce_collection_to_Interval_or_Multi_Interval([
+		Interval(lower_bound, upper_bound)
 		for lower_bound, upper_bound, is_interior
 		in iter_bound_pairs(a)
 		if not is_interior
 	])
 
 
-def interior(a: Collection[iInterval]) -> Collection[iInterval]:
-	from .iInterval import iInterval
-	return [iInterval(lower_bound, upper_bound)
+def interior(a: Collection[Interval]) -> Collection[Interval]:
+	from .Interval import Interval
+	return [Interval(lower_bound, upper_bound)
 			for lower_bound, upper_bound, is_interior
 			in iter_bound_pairs(a)
 			if is_interior
 	]
 
 
-def interior_merged(self) -> Collection[iInterval]:
-	from .iInterval import iInterval
+def interior_merged(self) -> Collection[Interval]:
+	from .Interval import Interval
 	return [
-		iInterval(lower_bound, upper_bound)
+		Interval(lower_bound, upper_bound)
 		for lower_bound, upper_bound, is_interior
 		in iter_bound_pairs_merge_touching(self)
 		if is_interior
 	]
 
-
-def hull(a: Iterable[iInterval]) -> Collection[iInterval]:
+# TODO: consider changing the result to Optional[Interval]
+def hull(a: Iterable[Interval]) -> Collection[Interval]:
 	result = tuple()
 	first = True
 	for a_interval in a:
@@ -465,16 +473,16 @@ def hull(a: Iterable[iInterval]) -> Collection[iInterval]:
 	return result
 	
 
-def hull_atomic(a: iInterval, b: iInterval) -> iInterval:
-	from .iInterval import iInterval
-	return iInterval(min(a.lower_bound, b.lower_bound), max(a.upper_bound, b.upper_bound))
+def hull_atomic(a: Interval, b: Interval) -> Interval:
+	from .Interval import Interval
+	return Interval(min(a.lower_bound, b.lower_bound), max(a.upper_bound, b.upper_bound))
 
 
 ##############################################
 # LINE SWEEP FUNCTIONS:
 #############################################
 
-def get_sorted_linked_bounds_with_stack_height(a: Collection[iInterval]) -> Generator[Tuple[int, Linked_iBound, int], None, None]:
+def get_sorted_linked_bounds_with_stack_height(a: Collection[Interval]) -> Generator[Tuple[int, Linked_Bound, int], None, None]:
 	"""
 	Returns a generator yielding tuples;
 	(
@@ -483,6 +491,7 @@ def get_sorted_linked_bounds_with_stack_height(a: Collection[iInterval]) -> Gene
 		stack_height_after:int
 	)
 	"""
+	# TODO: remove dependence on linked bounds class?
 	sorted_linked_bounds = sorted(itertools.chain.from_iterable(get_linked_bounds(a_interval) for a_interval in a))
 	stack_count_before = 0
 	stack_count_after = 0
@@ -495,7 +504,7 @@ def get_sorted_linked_bounds_with_stack_height(a: Collection[iInterval]) -> Gene
 		stack_count_before = stack_count_after
 
 	
-def iter_bound_pairs(a: Collection[iInterval]) -> Iterator[Tuple[iBound, iBound, bool]]:
+def iter_bound_pairs(a: Collection[Interval]) -> Iterator[Tuple[Bound, Bound, bool]]:
 	"""
 	yields each pair of bounds in a collection of intervals where the bounds are obtained by get_sorted_linked_bounds_with_stack_height().
 	Pairs of bounds that do not form a valid interval are ignored.
@@ -521,32 +530,42 @@ def iter_bound_pairs(a: Collection[iInterval]) -> Iterator[Tuple[iBound, iBound,
 				yield bound.bound, iBound_Positive_Infinity, EXTERIOR
 
 
-def iter_bound_pairs_merge_touching(a: Collection[iInterval]) -> Iterator[Tuple[iBound, iBound, bool]]:
+def iter_bound_pairs_merge_touching(a: Collection[Interval]) -> Iterator[Tuple[Bound, Bound, bool]]:
 	for is_interior, group in itertools.groupby(iter_bound_pairs(a), lambda item: item[2]):
 		(first_bound, _, _), (_, last_bound, _) = util.first_and_last(group)
 		yield first_bound, last_bound, is_interior
 
 
-def coerce_iInterval_collection(a: Collection[iInterval]) -> Union[iInterval, iMulti_iInterval]:
+def coerce_collection_to_Interval_or_Multi_Interval(a: Collection[Interval]) -> Union[Interval, Multi_Interval]:
 	if len(a) == 1:
-		from .iInterval import iInterval
-		if isinstance(a, iInterval):
+		from .Interval import Interval
+		if isinstance(a, Interval):
 			return a
 		else:
-			return coerce_iInterval_collection(*a)
+			# TODO: This nested conversion is probably not doing anything useful. Probably we wanted flat_map
+			raise Exception("Why are we doing this?")
+			return coerce_collection_to_Interval_or_Multi_Interval(*a)
 	else:
-		from .iMulti_iInterval import iMulti_iInterval
-		if isinstance(a, iMulti_iInterval):
+		from .Multi_Interval import Multi_Interval
+		if isinstance(a, Multi_Interval):
 			return a
 		else:
-			return iMulti_iInterval(a)
+			return Multi_Interval(a)
 
 
-def eq_atomic(a: iInterval, b: iInterval):
+def coerce_collection_to_Interval_or_None(a: Collection[Interval]) -> Optional[Interval]:
+	if len(a) == 1:
+		from .Interval import Interval
+		if isinstance(a, Interval):
+			return a
+	return None
+
+
+def eq_atomic(a: Interval, b: Interval):
 	return a.lower_bound == b.lower_bound and a.upper_bound == b.upper_bound
 
 
-def eq(a: Collection[iInterval], b: Collection[iInterval]) -> bool:
+def eq(a: Collection[Interval], b: Collection[Interval]) -> bool:
 	b_intervals = list(b)
 	if len(a) == len(b):
 		try:
@@ -562,7 +581,7 @@ def eq(a: Collection[iInterval], b: Collection[iInterval]) -> bool:
 	return len(b_intervals) == 0
 
 
-def union_merge_touching_OLD(a: Iterable[iInterval], b: Iterable[iInterval]):
+def union_merge_touching_OLD(a: Iterable[Interval], b: Iterable[Interval]):
 	raise Exception("pretty sure this algorithim is wrong. switch to union_merge_on_predicate()")
 	"""
 		Adds each sub-interval of a to b and returns a new set of intervals.
@@ -575,7 +594,7 @@ def union_merge_touching_OLD(a: Iterable[iInterval], b: Iterable[iInterval]):
 	for a_interval in a:
 		new_result = []
 		
-		def split_condition(item: iInterval):
+		def split_condition(item: Interval):
 			return touches_atomic(a_interval, item)
 		
 		for touching, r_intervals in itertools.groupby(sorted(result, key=split_condition), split_condition):
@@ -590,22 +609,22 @@ def union_merge_touching_OLD(a: Iterable[iInterval], b: Iterable[iInterval]):
 	return result
 
 
-def union_merge_touching(a: Iterable[iInterval], b: Iterable[iInterval]):
+def union_merge_touching(a: Iterable[Interval], b: Iterable[Interval]):
 	"""see union_merge_on_predicate for docs"""
 	return union_merge_on_predicate(a, b, lambda a_sub, b_sub: touches_atomic(a_sub, b_sub))
 
 
-def union_merge_intersecting_or_touching(a: Iterable[iInterval], b: Iterable[iInterval]):
+def union_merge_intersecting_or_touching(a: Iterable[Interval], b: Iterable[Interval]):
 	"""see union_merge_on_predicate for docs"""
 	return union_merge_on_predicate(a, b, lambda a_sub, b_sub: intersects_atomic(a_sub, b_sub) or touches_atomic(a_sub, b_sub))
 
 
-def union_merge_intersecting(a: Iterable[iInterval], b: Iterable[iInterval]):
+def union_merge_intersecting(a: Iterable[Interval], b: Iterable[Interval]):
 	"""see union_merge_on_predicate for docs"""
 	return union_merge_on_predicate(a, b, lambda a_sub, b_sub: intersects_atomic(a_sub, b_sub))
 
 
-def union_merge_on_predicate(a: Iterable[iInterval], b: Iterable[iInterval], predicate: Callable[[iInterval, iInterval], bool]):
+def union_merge_on_predicate(a: Iterable[Interval], b: Iterable[Interval], predicate: Callable[[Interval, Interval], bool]):
 	"""
 	Adds each sub-interval of b to a and returns a new set of intervals.
 	all sub-intervals from 'a' are added to the result as-is:
@@ -627,12 +646,12 @@ def union_merge_on_predicate(a: Iterable[iInterval], b: Iterable[iInterval], pre
 	return results
 
 
-def union_merge_intersecting_or_touching_linked(a: Iterable[Linked_iInterval], b: Iterable[Linked_iInterval]):
+def union_merge_intersecting_or_touching_linked(a: Iterable[Linked_Interval], b: Iterable[Linked_Interval]):
 	"""see union_merge_on_predicate for docs"""
 	return union_merge_on_predicate_linked(a, b, lambda a_sub, b_sub: intersects_atomic(a_sub, b_sub) or touches_atomic(a_sub, b_sub))
 
 
-def union_merge_on_predicate_linked(a: Iterable[Linked_iInterval], b: Iterable[Linked_iInterval], predicate: Callable[[iInterval, iInterval], bool]) -> Collection[Linked_iInterval]:
+def union_merge_on_predicate_linked(a: Iterable[Linked_Interval], b: Iterable[Linked_Interval], predicate: Callable[[Interval, Interval], bool]) -> Collection[Linked_Interval]:
 	"""
 	Adds each sub-interval of b to a and returns a new set of intervals.
 	all sub-intervals from 'a' are added to the result as-is:

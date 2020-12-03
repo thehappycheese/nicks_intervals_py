@@ -15,9 +15,9 @@ It does not seem to proved a Multi_Interval class...?
 
 In this library, three primary classes are provided:
 ```python
-from NicksIntervals.iBound import iBound, PART_OF_LEFT, PART_OF_RIGHT
-from NicksIntervals.iInterval import iInterval
-from NicksIntervals.iMulti_iInterval import iMulti_iInterval
+from NicksIntervals.Bound import Bound, PART_OF_LEFT, PART_OF_RIGHT
+from NicksIntervals.Interval import Interval
+from NicksIntervals.Multi_Interval import Multi_Interval
 ```
 
 ## iInterval() and iBound()
@@ -25,19 +25,19 @@ from NicksIntervals.iMulti_iInterval import iMulti_iInterval
 It is recommended that the iInterval class is constructed using the
 following factory methods which are easy to read and understand:
 ```python
-from NicksIntervals.iInterval import iInterval
-my_interval = iInterval.closed(0.0, 1.0)
-my_interval = iInterval.closed_open(0.0, 1.0)
-my_interval = iInterval.open_closed(0.0, 1.0)
-my_interval = iInterval.open(0.0, 1.0)
+from NicksIntervals.Interval import Interval
+my_interval = Interval.closed(0.0, 1.0)
+my_interval = Interval.closed_open(0.0, 1.0)
+my_interval = Interval.open_closed(0.0, 1.0)
+my_interval = Interval.open(0.0, 1.0)
 ```
 
 If required an `iInterval` can be directly constructed by providing the internal `iBound` objects:
 ```python
-from NicksIntervals.iBound import iBound
-from NicksIntervals.iBound import PART_OF_LEFT  # == True
-from NicksIntervals.iBound import PART_OF_RIGHT  # == False
-from NicksIntervals.iInterval import iInterval
+from NicksIntervals.Bound import Bound
+from NicksIntervals.Bound import PART_OF_LEFT  # == True
+from NicksIntervals.Bound import PART_OF_RIGHT  # == False
+from NicksIntervals.Interval import Interval
 # construct an interval from 0.0 to 1.0 where the exact value of both bounds are
 # considered to be 'part of' this interval. (ie both bounds are closed)
 my_interval = iInterval(iBound(0.0, PART_OF_RIGHT), iBound(0.0, PART_OF_LEFT))
@@ -54,12 +54,12 @@ print(my_interval.upper_bound.value) # >> 1.0
 This is the type for any arbitrary collection of `iIntervals`.
 The collection is stored as an immutable tuple.
 ```python
-from NicksIntervals.iInterval import iInterval
-from NicksIntervals.iMulti_iInterval import iMulti_iInterval
+from NicksIntervals.Interval import Interval
+from NicksIntervals.Multi_Interval import Multi_Interval
 my_multi_interval = iMulti_iInterval(
     (
-        iInterval.closed(1.0, 3.0),
-        iInterval.open(2.5, 3.1),
+        Interval.closed(1.0, 3.0),
+        Interval.open(2.5, 3.1),
         ...
     )
 )

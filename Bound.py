@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Union
 
 if TYPE_CHECKING:
-	from NicksIntervals.iInterval import iInterval, Linked_iInterval
+	from NicksIntervals.Interval import Interval, Linked_Interval
 import math
 
 
@@ -11,7 +11,7 @@ PART_OF_LEFT = True
 PART_OF_RIGHT = False
 
 
-class iBound:
+class Bound:
 	
 	def __init__(self, value: float, part_of_left: bool):
 		"""
@@ -41,35 +41,35 @@ class iBound:
 		return hash((self.__value, self.__part_of_left))
 	
 	def __eq__(self, other):
-		if isinstance(other, iBound):
+		if isinstance(other, Bound):
 			return math.isclose(self.__value, other.__value) and self.__part_of_left == other.__part_of_left
 		return NotImplemented
 	
 	def __gt__(self, other):
-		if isinstance(other, iBound):
+		if isinstance(other, Bound):
 			if math.isclose(self.__value, other.__value):
 				return self.part_of_left and other.part_of_right
 			return self.__value > other.__value
 		return NotImplemented
 		
 	def __lt__(self, other):
-		if isinstance(other, iBound):
+		if isinstance(other, Bound):
 			if math.isclose(self.__value, other.__value):
 				return self.part_of_right and other.part_of_left
 			return self.__value < other.__value
 		return NotImplemented
 	
-	def scaled(self, scale_factor: float) -> iBound:
-		return iBound(self.__value*scale_factor, self.__part_of_left)
+	def scaled(self, scale_factor: float) -> Bound:
+		return Bound(self.__value * scale_factor, self.__part_of_left)
 	
-	def translated(self, translation: float) -> iBound:
-		return iBound(self.__value + translation, self.__part_of_left)
+	def translated(self, translation: float) -> Bound:
+		return Bound(self.__value + translation, self.__part_of_left)
 	
 	def translated_then_scaled(self, translation: float, scale_factor: float):
-		return iBound((self.__value + translation) * scale_factor, self.__part_of_left)
+		return Bound((self.__value + translation) * scale_factor, self.__part_of_left)
 	
 	def scaled_then_translated(self, scale_factor: float, translation: float):
-		return iBound(self.__value * scale_factor + translation, self.__part_of_left)
+		return Bound(self.__value * scale_factor + translation, self.__part_of_left)
 	
 	@property
 	def value(self):
@@ -86,7 +86,7 @@ class iBound:
 		return not self.__part_of_left
 	
 	def inverted(self):
-		return iBound(float(self), not self.__part_of_left)
+		return Bound(float(self), not self.__part_of_left)
 	
 	def __format__(self, format_spec):
 		arrow = "🡆"
@@ -97,24 +97,24 @@ class iBound:
 	def __repr__(self):
 		return format(self, ".2f")
 	
-	def get_Linked_iBound(self, linked_interval: iInterval, is_lower_bound: bool):
-		return Linked_iBound(self, linked_interval, is_lower_bound)
+	def get_Linked_iBound(self, linked_interval: Interval, is_lower_bound: bool):
+		return Linked_Bound(self, linked_interval, is_lower_bound)
 
 
-iBound_Negative_Infinity = iBound(float('-inf'), PART_OF_RIGHT)
-iBound_Positive_Infinity = iBound(float('inf'), PART_OF_LEFT)
+iBound_Negative_Infinity = Bound(float('-inf'), PART_OF_RIGHT)
+iBound_Positive_Infinity = Bound(float('inf'), PART_OF_LEFT)
 
 
-class Linked_iBound(iBound):
-	def __init__(self, bound: iBound, interval: iInterval, is_lower_bound: bool):
+class Linked_Bound(Bound):
+	def __init__(self, bound: Bound, interval: Interval, is_lower_bound: bool):
 		"""
 		This class allows intervals to be decomposed into bounds without forgetting where the bound came from and if it was and an upper or lower bound.
 		it should not be instantiated directly, but obtained through an instance of iInterval by calling:
-		>>>iInterval(...).get_linked_bounds()
+		>>>Interval(...).get_linked_bounds()
 		"""
 		super().__init__(bound.value, bound.part_of_left)
-		self.__interval: Union[iInterval, Linked_iInterval] = interval
-		self.__bound: iBound = bound
+		self.__interval: Union[Interval, Linked_Interval] = interval
+		self.__bound: Bound = bound
 		self.__is_lower_bound = is_lower_bound
 	
 	def __format__(self, format_spec):
@@ -124,13 +124,13 @@ class Linked_iBound(iBound):
 		return f"Linked_{super().__format__(format_spec)[:-1]},{lower_or_upper_bound_string})"
 	
 	def __gt__(self, other):
-		if isinstance(other, Linked_iBound):
+		if isinstance(other, Linked_Bound):
 			if math.isclose(self.value, other.value) and self.part_of_left == other.part_of_left:
 				return self.is_lower_bound and other.is_upper_bound
 		return super().__gt__(other)
 
 	def __lt__(self, other):
-		if isinstance(other, Linked_iBound):
+		if isinstance(other, Linked_Bound):
 			if math.isclose(self.value, other.value) and self.part_of_left == other.part_of_left:
 				return self.is_upper_bound and other.is_lower_bound
 		return super().__lt__(other)
@@ -140,12 +140,12 @@ class Linked_iBound(iBound):
 	
 	@property
 	def interval(self):
-		"""a reference back to the interval which created this connected_iBound"""
+		"""a reference back to the interval which created this Linked_Bound"""
 		return self.__interval
 	
 	@property
 	def bound(self):
-		"""a reference back to the original immutable iBound object which the interval uses"""
+		"""a reference back to the original immutable Bound object which the interval uses"""
 		return self.__bound
 	
 	@property
