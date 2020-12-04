@@ -11,8 +11,8 @@ class Interval_Map:
 	@classmethod
 	def closed_open(cls, a: float, b: float, x: float, y: float):
 		return Interval_Map(
-			Interval.closed_open(a, b),
-			Interval.closed_open(x, y)
+			Interval.closed_open(a, b) if a != b else Interval.degenerate(a),
+			Interval.closed_open(x, y) if x != y else Interval.degenerate(x)
 		)
 	
 	def __init__(self, interval_in_dimension_a: Interval, interval_in_dimension_b: Interval):
@@ -42,6 +42,12 @@ class Interval_Map:
 	
 	def __contains__(self, item):
 		return (item is self.__interval_a) or (item is self.__interval_b)
+	
+	def __format__(self, format_spec):
+		return f"Map({format(self.from_interval, format_spec)} to {format(self.to_interval, format_spec)})"
+	
+	def __repr__(self):
+		return format(self, ".2f")
 	
 	def contains(self, interval_link: Interval_Map):
 		return ops.contains_interval_atomic(self.__interval_a, interval_link.__interval_a) and ops.contains_interval_atomic(self.__interval_b, interval_link.__interval_b)
