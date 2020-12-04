@@ -16,7 +16,7 @@ In this library, several classes are provided:
 from NicksIntervals.Bound import Bound, PART_OF_LEFT, PART_OF_RIGHT
 from NicksIntervals.Interval import Interval
 from NicksIntervals.Multi_Interval import Multi_Interval
-from NicksIntervals.Interval_Mapping import Interval_Mapping
+from NicksIntervals.Interval_Multi_Map import Interval_Multi_Map
 ```
 
 Most operations are implemented in a 'functional style' and can be accessed either through the `Interval` class, or:

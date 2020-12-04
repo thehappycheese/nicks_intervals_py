@@ -90,6 +90,13 @@ def iter_split_on_predicate(predicate: Callable[[T], bool], iterable: Iterable[T
 	return iter_for(predicate_value=True, hold_queue=deque_predicate_true), iter_for(predicate_value=False, hold_queue=deque_predicate_false)
 
 
+def iter_yield_duplicate_pairs(iterable: Iterable[T]) -> Iterable[Tuple[T, T]]:
+	""" Consumes an Iterable once, returning two references to each item in a tuple.
+	Useful if you want to retrieve a reference to an item, and also destructure it in one for statement.
+	"""
+	return ((item, item) for item in iterable)
+
+
 def first_and_last(iterable: Iterator) -> Tuple[Any, Any]:
 	is_first = True
 	last_item = None

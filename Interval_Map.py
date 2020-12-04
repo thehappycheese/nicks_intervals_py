@@ -1,27 +1,40 @@
+from __future__ import annotations
+
+from typing import Union, Tuple, Iterator
+
 from NicksIntervals import _operators as ops
 from NicksIntervals.Interval import Interval
 
 
 class Interval_Map:
 	
+	@classmethod
+	def closed_open(cls, a: float, b: float, x: float, y: float):
+		return Interval_Map(
+			Interval.closed_open(a, b),
+			Interval.closed_open(x, y)
+		)
+	
 	def __init__(self, interval_in_dimension_a: Interval, interval_in_dimension_b: Interval):
-		"""Links one interval with another interval: Used to form an Interval_Mapping."""
-		# TODO: hold info about degenerate cases; if the from space is degenerate, then how will the to space behave?
-		#  this is currently determined by the _operators.
+		"""Links one interval with another interval: Used to form an Interval_Mapping.
+		Interval arguments must be atomic."""
+		# TODO: this class is kind of like a multi_interval and could almost extend it;
+		#  but we cant because in an IntervalMap sub-intervals are treated as being on separate dimensions rather than an un-ordered set.
+		#  Therefore if we want to know if an Interval_Map is touching another Interval_Map, we would use all(sub-intervals-touching) rather than any(sub-intervals-touching)
 		self.__interval_a = interval_in_dimension_a
 		self.__interval_b = interval_in_dimension_b
-		
+	
 	def __len__(self):
 		return 2
 	
-	def __getitem__(self, item: int):
+	def __getitem__(self, item: int) -> Interval:
 		if item == 0:
 			return self.__interval_a
 		elif item == 1:
 			return self.__interval_b
 		raise IndexError(f"{self.__class__.__qualname__} has only 2 index-able items, [0], and [1]. Negative indices are not supported")
 	
-	def __iter__(self):
+	def __iter__(self) -> Iterator[Interval]:
 		return iter((self.__interval_a, self.__interval_b))
 	
 	def __reversed__(self):
@@ -31,22 +44,26 @@ class Interval_Map:
 		return (item is self.__interval_a) or (item is self.__interval_b)
 	
 	def contains(self, interval_link: Interval_Map):
-		return self.__interval_a.contains_interval(interval_link.__interval_a) and self.__interval_b.contains_interval(interval_link.__interval_b)
+		return ops.contains_interval_atomic(self.__interval_a, interval_link.__interval_a) and ops.contains_interval_atomic(self.__interval_b, interval_link.__interval_b)
 	
 	def touches(self, interval_link: Interval_Map):
-		return self.__interval_a.touches(interval_link.__interval_a) and self.__interval_b.touches(interval_link.__interval_b)
+		return ops.touches_atomic(self.__interval_a, interval_link.__interval_a) and ops.touches_atomic(self.__interval_b, interval_link.__interval_b)
 	
-	def merge(self, interval_link: Interval_Map):
-		a = ops.coerce_collection_to_Interval_or_None(self.__interval_a.hull(interval_link.__interval_a))
-		b = ops.coerce_collection_to_Interval_or_None(self.__interval_b.hull(interval_link.__interval_b))
-		if a and b:
+	def intersects(self, interval_link: Interval_Map):
+		return ops.intersects_atomic(self.__interval_a, interval_link.__interval_a) and ops.intersects_atomic(self.__interval_b, interval_link.__interval_b)
+	
+	def merge_by_hull(self, interval_link: Union[Interval_Map, Tuple[Interval, Interval]]):
+		a_other, b_other = interval_link
+		a = ops.coerce_collection_to_Interval_or_None(self.__interval_a.hull(a_other))
+		b = ops.coerce_collection_to_Interval_or_None(self.__interval_b.hull(b_other))
+		if a is not None and b is not None:
 			return Interval_Map(a, b)
 		return None
 	
 	@property
-	def from_dimension(self) -> Interval:
+	def from_interval(self) -> Interval:
 		return self.__interval_a
 	
 	@property
-	def to_dimension(self) -> Interval:
+	def to_interval(self) -> Interval:
 		return self.__interval_b

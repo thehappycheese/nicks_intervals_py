@@ -3,12 +3,13 @@ from __future__ import annotations
 import itertools
 from typing import Tuple, Collection, Iterable, Callable, Sequence
 
+from NicksIntervals import util
 from NicksIntervals.Interval import Interval
 import NicksIntervals._operators as ops
 from NicksIntervals.Interval_Map import Interval_Map
 
 
-class Interval_Mapping:
+class Interval_Multi_Map:
 	def __init__(self, links: Iterable[Sequence[Interval, Interval]]):
 		self.__links: Tuple[Interval_Map, ...] = tuple(Interval_Map(a, b) for a, b in links)
 		self.__reversed = None
@@ -25,7 +26,7 @@ class Interval_Mapping:
 	
 	def reverse(self):
 		if self.__reversed is None:
-			self.__reversed = Interval_Mapping((b, a) for a, b in self.__links)
+			self.__reversed = Interval_Multi_Map((b, a) for a, b in self.__links)
 		return self.__reversed
 		
 	def map_intervals(self, intervals: Iterable[Interval]):
@@ -43,6 +44,14 @@ class Interval_Mapping:
 		raise Exception("to be implemented if required")
 	
 	@classmethod
+	def predicate_always(cls, *args):
+		return True
+	
+	@classmethod
+	def predicate_never(cls, *args):
+		return True
+	
+	@classmethod
 	def predicate_touching(cls, a: Interval, b: Interval):
 		return ops.touches_atomic(a, b)
 	
@@ -56,13 +65,15 @@ class Interval_Mapping:
 	
 	def merge_on_predicates(self, from_predicate: Callable[[Interval, Interval], bool], to_predicate: Callable[[Interval, Interval], bool]):
 		"""Merge links based on the provided predicates; the Interval_Map class provide some helpers as @classmethods.
-		All combinations are tested, and the process starts again each time a merge is performed.
-		TODO: this is a very slow algorithm O(n^2) or O(n!) ? not good stuff. We can improve by creating an 'add and merge'"""
+		All combinations are tested, and the process starts again each time a merge is performed."""
+		# TODO: this is a very slow algorithm O(n^2) or O(n!) ? not good stuff. We can improve by creating an 'add and merge'
+		# TODO: this algorithm has issues when one interval_map completely contains the other.
+		#  Might be better to progressively build the map using .add_merge_if_contained_or_touching()
 		
 		result = [*self.__links]
-		restart = True
-		while restart:
-			restart = False
+		must_restart = True
+		while must_restart:
+			must_restart = False
 			for a, b in itertools.combinations(result, 2):
 				if from_predicate(a[0], b[0]) and to_predicate(a[1], b[1]):
 					result.remove(a)
@@ -71,6 +82,38 @@ class Interval_Mapping:
 						ops.hull_atomic(a[0], b[0]),
 						ops.hull_atomic(a[1], b[1])
 					))
-					restart = True
+					must_restart = True
 					break
-		return Interval_Mapping(result)
+		return Interval_Multi_Map(result)
+	
+	def add_merge_if_contained_or_touching(self, interval_map_to_add: Interval_Map) -> Interval_Multi_Map:
+		"""Returns a new Interval_Multi_Map with an additional element.
+		If the new element touches any existing element (on both dimensions)
+		it will be merged, and the check for touching will restart.
+		If the new element is contained within any existing element then no change is made.
+		If any existing element is contained within the new element, it is removed before the new element is added.
+		"""
+		
+		interval_map_to_add = [interval_map_to_add]
+
+		result = list(self.__links)
+		
+		must_restart = True
+		
+		while must_restart:
+			must_restart = False
+			for sub_result in result:
+				if sub_result.contains(interval_map_to_add[0]):
+					interval_map_to_add = []
+					break
+				elif interval_map_to_add[0].contains(sub_result):
+					result.remove(sub_result)
+					must_restart = True
+					break
+				elif sub_result.touches(interval_map_to_add[0]):
+					interval_map_to_add = [interval_map_to_add[0].merge_by_hull(sub_result)]
+					result.remove(sub_result)
+					must_restart = True
+					break
+					
+		return Interval_Multi_Map([*result, *interval_map_to_add])
