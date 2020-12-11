@@ -76,7 +76,7 @@ def apply_interval_map_to_value_atomic(map_from: Interval, map_to: Interval, val
 	return tuple()
 
 
-def apply_interval_maps_to_value(iterable_of_links: Iterable[Sequence[Interval]], value: float) -> Collection[float]:
+def apply_interval_maps_to_value(iterable_of_links: Iterable[Sequence[Interval]], value: float) -> Sequence[float]:
 	result = []
 	for link_sequence in iterable_of_links:
 		result.extend(apply_interval_map_to_value_atomic(link_sequence[0], link_sequence[-1], value))
@@ -358,6 +358,30 @@ def touches_atomic(a: Interval, b: Interval) -> bool:
 		return True
 	return False
 
+
+def nearest_contained_value(a: Collection[Interval], value: float, containment_amount: float = 0.000001):
+	"""does not account for bound direction"""
+	nearest_value_so_far = None
+	nearest_so_far_dist = float('inf')
+	
+	for interval in a:
+		if contains_value_atomic(interval, value):
+			return value
+		else:
+			if value < interval.lower_bound.value or math.isclose(value, interval.lower_bound.value):
+				diff = abs(value - interval.lower_bound.value)
+				if diff < nearest_so_far_dist:
+					nearest_so_far_dist = diff
+					nearest_value_so_far = interval.lower_bound.value + (containment_amount if interval.lower_bound.part_of_left else 0)
+			
+			elif value >= interval.upper_bound.value or math.isclose(value, interval.upper_bound.value):
+				diff = abs(value - interval.upper_bound.value)
+				if diff < nearest_so_far_dist:
+					nearest_so_far_dist = diff
+					nearest_value_so_far = interval.upper_bound.value - (containment_amount if interval.upper_bound.part_of_right else 0)
+	
+	return nearest_value_so_far
+	
 
 def contains_value(a: Collection[Interval], value: float) -> bool:
 	return any(contains_value_atomic(interval, value) for interval in a)

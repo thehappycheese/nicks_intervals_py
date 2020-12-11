@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import itertools
-from typing import Iterable, Collection, TYPE_CHECKING
+from typing import Iterable, Collection, TYPE_CHECKING, Optional
 
 import NicksIntervals.Interval
 # if TYPE_CHECKING:
@@ -9,7 +9,7 @@ import NicksIntervals.Bound
 
 
 class Multi_Interval(NicksIntervals.Interval.Interval):
-
+	
 	def __init__(self, iter_intervals: Iterable[NicksIntervals.Interval.Interval]):
 		self.__intervals: Collection[NicksIntervals.Interval.Interval] = tuple(iter_intervals)
 	
@@ -27,7 +27,7 @@ class Multi_Interval(NicksIntervals.Interval.Interval):
 	
 	def __contains__(self, item):
 		return item in self.__intervals
-		
+	
 	def print(self):
 		print("Multi_Interval:")
 		for sub_interval in self.__intervals:
@@ -36,14 +36,20 @@ class Multi_Interval(NicksIntervals.Interval.Interval):
 		return self
 	
 	@property
-	def upper_bound(self) -> NicksIntervals.Bound.Bound:
+	def upper_bound(self) -> Optional[NicksIntervals.Bound.Bound]:
 		# raise Exception("Should not be called internally")
-		return max(bound.bound for bound in itertools.chain.from_iterable(interval.get_linked_bounds() for interval in self.__intervals))
+		if len(self.__intervals) > 0:
+			return max(bound.bound for bound in itertools.chain.from_iterable(interval.get_linked_bounds() for interval in self.__intervals))
+		else:
+			return None
 	
 	@property
-	def lower_bound(self) -> NicksIntervals.Bound.Bound:
+	def lower_bound(self) -> Optional[NicksIntervals.Bound.Bound]:
 		# raise Exception("Should not be called internally")
-		return min(bound.bound for bound in itertools.chain.from_iterable(interval.get_linked_bounds() for interval in self.__intervals))
-
+		if len(self.__intervals) > 0:
+			return min(bound.bound for bound in itertools.chain.from_iterable(interval.get_linked_bounds() for interval in self.__intervals))
+		else:
+			return None
+		
 	def interior_merged(self):
 		return NicksIntervals.Interval.ops.coerce_collection_to_Interval_or_Multi_Interval(NicksIntervals.Interval.ops.interior_merged(self))

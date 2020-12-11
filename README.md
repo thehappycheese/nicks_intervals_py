@@ -124,10 +124,15 @@ my_interval = Interval.open_inf(0.0)
 my_interval = Interval.closed_inf(0.0)
 ```
 
+>**Tips and Tricks:**
+> 
+> To avoid errors caused by reversed bounds, construct your intervals like this:
+> `Interval.closed(*sorted([some_value, some_other_value]))`
+
 ### 1.4 Multi_Intervals
 
 Many operations on intervals may result in zero, one, or more intervals.
-In any of these cases, the result can be represented as a `Multi_Interval`
+The result can be always be represented as a `Multi_Interval`.
 
 Only when an operation results in exactly one interval,
 the result can be represented as a single `Interval` object.

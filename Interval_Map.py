@@ -28,9 +28,9 @@ class Interval_Map:
 		return 2
 	
 	def __getitem__(self, item: int) -> Interval:
-		if item == 0:
+		if item == 0 or item == -2:
 			return self.__interval_a
-		elif item == 1:
+		elif item == 1 or item == -1:
 			return self.__interval_b
 		raise IndexError(f"{self.__class__.__qualname__} has only 2 index-able items, [0], and [1]. Negative indices are not supported")
 	

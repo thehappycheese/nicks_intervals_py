@@ -227,7 +227,7 @@ class Interval:
 	def interior(self) -> Collection[Interval]:
 		return ops.coerce_collection_to_Interval_or_Multi_Interval(ops.interior(self))
 	
-	def intersect(self, other: Collection[Interval]) -> Collection[Interval]:
+	def intersect(self, other: Collection[Interval]):
 		return ops.coerce_collection_to_Interval_or_Multi_Interval(ops.intersect(self, other))
 	
 	def subtract(self, other: Collection[Interval]) -> Multi_Interval:

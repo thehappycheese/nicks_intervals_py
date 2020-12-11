@@ -37,9 +37,13 @@ class Interval_Multi_Map:
 	def unmap_intervals(self):
 		raise Exception("to be implemented if required")
 	
-	def map_value(self, values: float) -> Collection[float]:
-		return ops.apply_interval_maps_to_value(self.__links, values)
+	def map_value(self, value: float) -> Sequence[float]:
+		return ops.apply_interval_maps_to_value(self.__links, value)
 	
+	def map_value_nearest(self, value: float):
+		"""Same as map_value(), but first ensures that the input value is inside the nearest interval."""
+		return self.map_value(ops.nearest_contained_value(self.get_from(), value))[0]
+		
 	def unmap_value(self):
 		raise Exception("to be implemented if required")
 	
