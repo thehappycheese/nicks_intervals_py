@@ -8,13 +8,13 @@ Pure python library for manipulating Intervals and Multi-Intervals.
 To install:
 
 ```powershell
-pip install "https://github.com/thehappycheese/nicks_intervals_py/zipball/master/"
+pip install "https://github.com/thehappycheese/nicks_intervals_py/zipball/main/"
 ```
 
 To Upgrade:
 
 ```powershell
-pip install --upgrade "https://github.com/thehappycheese/nicks_intervals_py/zipball/master/"
+pip install --upgrade "https://github.com/thehappycheese/nicks_intervals_py/zipball/main/"
 ```
 
 To show installed version:
