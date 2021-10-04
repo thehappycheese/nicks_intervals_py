@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import itertools
-from typing import Tuple, Collection, Iterable, Callable, Sequence
+from typing import Tuple, Iterable, Callable, Sequence
 
-from NicksIntervals import util
-from NicksIntervals.Interval import Interval
-import NicksIntervals._operators as ops
-from NicksIntervals.Interval_Map import Interval_Map
+from .Interval import Interval
+from . import _operators as ops
+from .Interval_Map import Interval_Map
 
 
 class Interval_Multi_Map:

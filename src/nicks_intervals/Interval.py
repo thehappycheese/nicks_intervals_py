@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import itertools
 import math
-from typing import Collection, TYPE_CHECKING, Iterable, TypeVar, Generic
+from typing import Any, Collection, TYPE_CHECKING, Iterable, TypeVar, Generic
 
 from .Bound import PART_OF_LEFT, Linked_Bound
 from .Bound import PART_OF_RIGHT
@@ -18,7 +18,7 @@ from .Bound import Bound
 from .Bound import iBound_Negative_Infinity
 from .Bound import iBound_Positive_Infinity
 
-import NicksIntervals._operators as ops
+from . import _operators as ops
 if TYPE_CHECKING:
 	from .Multi_Interval import Multi_Interval
 
@@ -107,7 +107,7 @@ class Interval:
 		elif lower_bound.value > upper_bound.value:
 			raise Exception(f"reversed intervals are not permitted. lower_bound.value must be less than or equal to upper_bound.value: {lower_bound} <= {upper_bound} == {lower_bound.value<=upper_bound.value}")
 		
-	def __format__(self, format_spec):
+	def __format__(self, format_spec:str):
 		char_left = f"{format(float(self.__lower_bound.value), format_spec)}"
 		char_right = f"{format(float(self.__upper_bound.value), format_spec)}"
 		
@@ -140,10 +140,11 @@ class Interval:
 	def __bool__(self):
 		return True
 	
-	def __contains__(self, item):
+	def __contains__(self, item:Any):
+		raise Exception("not sure this is working as expected")
 		return self == item
 	
-	def __eq__(self, other):
+	def __eq__(self, other:Collection[Interval]):
 		return ops.eq(self, other)
 	
 	def __hash__(self):

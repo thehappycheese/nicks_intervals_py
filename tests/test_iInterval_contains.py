@@ -1,8 +1,8 @@
 import pytest
 
-from NicksIntervals.Bound import Bound, PART_OF_LEFT, PART_OF_RIGHT
-from NicksIntervals.Interval import Interval
-import NicksIntervals._operators as ops
+from nicks_intervals.Bound import Bound, PART_OF_LEFT, PART_OF_RIGHT
+from nicks_intervals.Interval import Interval
+import nicks_intervals._operators as ops
 
 
 def test_iInterval_contains_value():

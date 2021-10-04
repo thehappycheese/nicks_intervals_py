@@ -3,6 +3,34 @@
 Pure python library for manipulating Intervals and Multi-Intervals.
 (With Python 3.7 type hints)
 
+## Install, Upgrade, Uninstall
+
+To install:
+
+```powershell
+pip install "https://github.com/thehappycheese/nicks_intervals_py/zipball/master/"
+```
+
+To Upgrade:
+
+```powershell
+pip install --upgrade "https://github.com/thehappycheese/nicks_intervals_py/zipball/master/"
+```
+
+To show installed version:
+
+```powershell
+pip show dtimsprep
+```
+
+To remove:
+
+```powershell
+pip uninstall dtimsprep
+```
+
+## Introduction
+
 Other libraries are out there, but I wanted something that
  - Supports modern type hints,
  - Has readable API, with minimum abbreviation of function names

@@ -1,7 +1,7 @@
 import pytest
 
-from NicksIntervals.Bound import Bound, PART_OF_LEFT, PART_OF_RIGHT
-from NicksIntervals.Interval import Interval
+from nicks_intervals.Bound import Bound, PART_OF_LEFT, PART_OF_RIGHT
+from nicks_intervals.Interval import Interval
 from random import shuffle
 
 

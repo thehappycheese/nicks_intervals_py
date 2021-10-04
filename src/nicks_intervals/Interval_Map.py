@@ -2,8 +2,8 @@ from __future__ import annotations
 
 from typing import Union, Tuple, Iterator
 
-from NicksIntervals import _operators as ops
-from NicksIntervals.Interval import Interval
+from . import _operators as ops
+from .Interval import Interval
 
 
 class Interval_Map:

@@ -3,15 +3,15 @@ from __future__ import annotations
 import itertools
 from typing import Iterable, Collection, TYPE_CHECKING, Optional
 
-import NicksIntervals.Interval
+from . import Interval
 # if TYPE_CHECKING:
-import NicksIntervals.Bound
+from . import Bound
 
 
-class Multi_Interval(NicksIntervals.Interval.Interval):
+class Multi_Interval(Interval.Interval):
 	
-	def __init__(self, iter_intervals: Iterable[NicksIntervals.Interval.Interval]):
-		self.__intervals: Collection[NicksIntervals.Interval.Interval] = tuple(iter_intervals)
+	def __init__(self, iter_intervals: Iterable[Interval.Interval]):
+		self.__intervals: Collection[Interval.Interval] = tuple(iter_intervals)
 	
 	def __format__(self, format_spec):
 		return f"Multi_Interval[{len(self.__intervals)}]([{', '.join(['...' + str(len(self.__intervals)) if index == 4 else format(interval, format_spec) for index, interval in enumerate(self.__intervals) if index < 5])}])"
@@ -36,7 +36,7 @@ class Multi_Interval(NicksIntervals.Interval.Interval):
 		return self
 	
 	@property
-	def upper_bound(self) -> Optional[NicksIntervals.Bound.Bound]:
+	def upper_bound(self) -> Optional[Bound.Bound]:
 		# raise Exception("Should not be called internally")
 		if len(self.__intervals) > 0:
 			return max(bound.bound for bound in itertools.chain.from_iterable(interval.get_linked_bounds() for interval in self.__intervals))
@@ -44,7 +44,7 @@ class Multi_Interval(NicksIntervals.Interval.Interval):
 			return None
 	
 	@property
-	def lower_bound(self) -> Optional[NicksIntervals.Bound.Bound]:
+	def lower_bound(self) -> Optional[Bound.Bound]:
 		# raise Exception("Should not be called internally")
 		if len(self.__intervals) > 0:
 			return min(bound.bound for bound in itertools.chain.from_iterable(interval.get_linked_bounds() for interval in self.__intervals))
@@ -52,4 +52,4 @@ class Multi_Interval(NicksIntervals.Interval.Interval):
 			return None
 		
 	def interior_merged(self):
-		return NicksIntervals.Interval.ops.coerce_collection_to_Interval_or_Multi_Interval(NicksIntervals.Interval.ops.interior_merged(self))
+		return Interval.ops.coerce_collection_to_Interval_or_Multi_Interval(Interval.ops.interior_merged(self))

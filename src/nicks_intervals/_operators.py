@@ -4,15 +4,15 @@ import itertools
 import math
 from typing import TypeVar, Generator, Tuple, TYPE_CHECKING, List, Sized, Collection, Union, Iterable, Iterator, Callable, Sequence, Optional
 
-from NicksIntervals import util
-from NicksIntervals.Bound import Bound, iBound_Negative_Infinity, iBound_Positive_Infinity, Linked_Bound
+from . import util
+from .Bound import Bound, iBound_Negative_Infinity, iBound_Positive_Infinity, Linked_Bound
 
 
 if TYPE_CHECKING:
-	from NicksIntervals.Interval_Map import Interval_Map
-	from NicksIntervals.Interval import Interval
-	from NicksIntervals.Interval import Linked_Interval
-	from NicksIntervals.Multi_Interval import Multi_Interval
+	from .Interval_Map import Interval_Map
+	from .Interval import Interval
+	from .Interval import Linked_Interval
+	from .Multi_Interval import Multi_Interval
 
 T = TypeVar('T')
 
@@ -112,7 +112,7 @@ def get_linked_bounds(a: Iterable[Interval]) -> List[Linked_Bound]:
 
 
 def get_linked_intervals(a: Iterable[Interval], linked_objects: Iterable[T]) -> Iterable[Linked_Interval[T]]:
-	from NicksIntervals.Interval import Linked_Interval
+	from .Interval import Linked_Interval
 	return list(Linked_Interval(a_interval, linked_objects) for a_interval in a)
 
 

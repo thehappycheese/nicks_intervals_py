@@ -1,7 +1,7 @@
 import itertools
 
-from NicksIntervals.Interval import Interval
-from NicksIntervals.Multi_Interval import Multi_Interval
+from nicks_intervals.Interval import Interval
+from nicks_intervals.Multi_Interval import Multi_Interval
 
 
 def test_eq_not():

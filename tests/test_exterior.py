@@ -2,9 +2,9 @@ from typing import Collection, Union
 
 import pytest
 
-from NicksIntervals.Bound import Bound, PART_OF_LEFT, PART_OF_RIGHT
-from NicksIntervals.Interval import Interval
-from NicksIntervals.Multi_Interval import Multi_Interval
+from nicks_intervals.Bound import Bound, PART_OF_LEFT, PART_OF_RIGHT
+from nicks_intervals.Interval import Interval
+from nicks_intervals.Multi_Interval import Multi_Interval
 
 
 def exterior_is_same_as_inf_sub(a: Union[Interval, Multi_Interval]):
